@@ -1,0 +1,111 @@
+Epoca [4/50]:
+- Train Loss: 0.6067
+- Val Loss: 0.6250
+- mAP@0.5: 0.3993
+- Recall: 0.6836
+[ 16:53:40 - Tempo impiegato: 286.70s ]
+Early stopping counter: 1 / 7
+
+Epoca [5/50]:
+- Train Loss: 0.5786
+- Val Loss: 0.6018
+- mAP@0.5: 0.4354
+- Recall: 0.6920
+[ 16:58:28 - Tempo impiegato: 288.38s ]
+Checkpoint salvato. Miglioramento metrica (0.6245 -> 0.6018).
+
+Epoca [6/50]:
+- Train Loss: 0.5572
+- Val Loss: 0.5932
+- mAP@0.5: 0.3894
+- Recall: 0.7087
+[ 17:03:18 - Tempo impiegato: 289.49s ]
+Checkpoint salvato. Miglioramento metrica (0.6018 -> 0.5932).
+
+Epoca [7/50]:
+- Train Loss: 0.5390
+- Val Loss: 0.5865
+- mAP@0.5: 0.4125
+- Recall: 0.7116
+[ 17:08:12 - Tempo impiegato: 293.21s ]
+Checkpoint salvato. Miglioramento metrica (0.5932 -> 0.5865).
+
+Epoca [8/50]:
+- Train Loss: 0.5217
+- Val Loss: 0.5830
+- mAP@0.5: 0.4480
+- Recall: 0.6849
+[ 17:13:03 - Tempo impiegato: 290.06s ]
+Checkpoint salvato. Miglioramento metrica (0.5865 -> 0.5830).
+
+Epoca [9/50]:
+- Train Loss: 0.5076
+- Val Loss: 0.5841
+- mAP@0.5: 0.4208
+- Recall: 0.7302
+[ 17:17:52 - Tempo impiegato: 289.26s ]
+Early stopping counter: 1 / 7
+
+Epoca [10/50]:
+- Train Loss: 0.4945
+- Val Loss: 0.5812
+- mAP@0.5: 0.4027
+- Recall: 0.7202
+[ 17:22:43 - Tempo impiegato: 290.73s ]
+Checkpoint salvato. Miglioramento metrica (0.5830 -> 0.5812).
+
+Epoca [11/50]:
+- Train Loss: 0.4809
+- Val Loss: 0.5830
+- mAP@0.5: 0.4242
+- Recall: 0.7255
+[ 17:27:35 - Tempo impiegato: 291.34s ]
+Early stopping counter: 1 / 7
+
+Epoca [12/50]:
+- Train Loss: 0.4722
+- Val Loss: 0.5893
+- mAP@0.5: 0.4251
+- Recall: 0.6980
+[ 17:32:24 - Tempo impiegato: 289.38s ]
+Early stopping counter: 2 / 7
+
+Epoca [13/50]:
+- Train Loss: 0.4615
+- Val Loss: 0.5823
+- mAP@0.5: 0.4417
+- Recall: 0.7241
+[ 17:37:13 - Tempo impiegato: 288.92s ]
+Early stopping counter: 3 / 7
+
+Epoca [14/50]:
+- Train Loss: 0.4508
+- Val Loss: 0.5896
+- mAP@0.5: 0.4811
+- Recall: 0.7113
+[ 17:41:59 - Tempo impiegato: 286.06s ]
+Early stopping counter: 4 / 7
+
+Epoca [15/50]:
+- Train Loss: 0.4432
+- Val Loss: 0.6001
+- mAP@0.5: 0.4551
+- Recall: 0.7031
+[ 17:46:50 - Tempo impiegato: 290.10s ]
+Early stopping counter: 5 / 7
+
+Epoca [16/50]:
+- Train Loss: 0.4337
+- Val Loss: 0.5970
+- mAP@0.5: 0.4339
+- Recall: 0.6996
+[ 17:51:40 - Tempo impiegato: 290.64s ]
+Early stopping counter: 6 / 7
+
+Epoca [17/50]:
+- Train Loss: 0.4255
+- Val Loss: 0.6000
+- mAP@0.5: 0.4809
+- Recall: 0.7208
+[ 17:56:32 - Tempo impiegato: 291.93s ]
+Early stopping counter: 7 / 7

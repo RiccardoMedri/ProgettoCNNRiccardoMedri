@@ -1,0 +1,118 @@
+{
+    "type": "object",
+    "properties": {
+        "experiment": {
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "seed": {"type": "integer"},
+                "device": {"type": "string"}
+            },
+            "required": ["name", "seed", "device"]
+        },
+        "data": {
+            "type": "object",
+            "properties": {
+                "batch_size": {"type": "integer"},
+                "num_workers": {"type": "integer"},
+                "image_size": {"type": "integer"},
+                "num_classes": {"type": "integer"},
+                "class_map": {"type": "object"},
+                "normalize": {
+                    "type": "object",
+                    "properties": {
+                        "mean": {"type": "array"},
+                        "std": {"type": "array"}
+                    },
+                    "required": ["mean", "std"]
+                },
+                "augmentation": {
+                    "type": "object",
+                    "properties": {
+                        "horizontal_flip": {"type": "boolean"},
+                        "flip_prob": {"type": "number"},
+                        "color_jitter": {"type": "boolean"},
+                        "brightness": {"type": "number"},
+                        "contrast": {"type": "number"},
+                        "saturation": {"type": "number"},
+                        "hue": {"type": "number"},
+                        "random_scale": {"type": "boolean"},
+                        "scale_min": {"type": "number"},
+                        "scale_max": {"type": "number"}
+                    }
+                },
+                "train": {
+                    "type": "object",
+                    "properties": {
+                        "images_dir": {"type": "string"},
+                        "annotations_dir": {"type": "string"}
+                    },
+                    "required": ["images_dir", "annotations_dir"]
+                },
+                "val": {
+                    "type": "object",
+                    "properties": {
+                        "images_dir": {"type": "string"},
+                        "annotations_dir": {"type": "string"}
+                    },
+                    "required": ["images_dir", "annotations_dir"]
+                },
+                "yolo": {
+                    "type": "object",
+                    "properties": {
+                        "dataset_root": {"type": "string"},
+                        "auto_convert": {"type": "boolean"},
+                        "yaml_path": {"type": "string"}
+                    },
+                    "required": ["dataset_root", "auto_convert", "yaml_path"]
+                }
+            },
+            "required": ["batch_size", "num_workers", "image_size", "num_classes", "train", "val", "normalize"]
+        },
+        "training": {
+            "type": "object",
+            "properties": {
+                "epochs": {"type": "integer"},
+                "patience": {"type": "integer"},
+                "delta": {"type": "number"},
+                "early_stop_mode": {"type": "string"},
+                "early_stop_metric": {"type": "string"},
+                "use_amp": {"type": "boolean"},
+                "gradient_clip_norm": {"type": ["number", "null"]},
+                "log_interval": {"type": "integer"},
+                "save_predictions_every": {"type": "integer"},
+                "prediction_samples": {"type": "integer"},
+                "prediction_score_threshold": {"type": "number"},
+                "runs_dir": {"type": "string"},
+                "checkpoint_path": {"type": "string"},
+                "optimizer": {
+                    "type": "object",
+                    "properties": {
+                        "lr": {"type": "number"},
+                        "min_lr": {"type": "number"},
+                        "weight_decay": {"type": "number"}
+                    },
+                    "required": ["lr", "min_lr", "weight_decay"]
+                }
+            },
+            "required": ["epochs", "patience", "delta", "early_stop_mode", "early_stop_metric", "use_amp", "log_interval", "save_predictions_every", "prediction_samples", "prediction_score_threshold", "runs_dir", "checkpoint_path", "optimizer"]
+        },
+        "evaluation": {
+            "type": "object",
+            "properties": {
+                "iou_threshold": {"type": "number"}
+            },
+            "required": ["iou_threshold"]
+        },
+        "models": {
+            "type": "object",
+            "properties": {
+                "yolov11": {"type": "object"},
+                "retinanet": {"type": "object"},
+                "faster_rcnn": {"type": "object"}
+            },
+            "required": ["yolov11", "retinanet", "faster_rcnn"]
+        }
+    },
+    "required": ["experiment", "data", "training", "evaluation", "models"]
+}

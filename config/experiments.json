@@ -1,0 +1,40 @@
+[
+    {
+        "name": "frcnn_baseline",
+        "model": "faster_rcnn",
+        "overrides": {
+            "training": {
+                "epochs": 30,
+                "optimizer": {"lr": 0.0002, "weight_decay": 0.0001}
+            }
+        }
+    },
+    {
+        "name": "frcnn_high_lr",
+        "model": "faster_rcnn",
+        "overrides": {
+            "training": {
+                "epochs": 30,
+                "optimizer": {"lr": 0.0005, "weight_decay": 0.0001}
+            }
+        }
+    },
+    {
+        "name": "retinanet_baseline",
+        "model": "retinanet",
+        "overrides": {
+            "training": {
+                "epochs": 40,
+                "optimizer": {"lr": 0.0003, "weight_decay": 0.00005}
+            }
+        }
+    },
+    {
+        "name": "yolov11_small",
+        "model": "yolov11",
+        "overrides": {
+            "training": {"epochs": 50},
+            "models": {"yolov11": {"weights": "yolov11s.pt"}}
+        }
+    }
+]
