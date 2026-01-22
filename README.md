@@ -105,3 +105,4 @@ Output training (TorchVision):
 - `runs/<model>/<timestamp>_<experiment-name>/results.csv` con loss, mAP, precision/recall/F1 e learning rate per epoca.
 - `runs/<model>/<timestamp>_<experiment-name>/predictions/epoch_<N>/` con immagini annotate (GT in verde, pred in rosso).
 - `runs/<model>/<timestamp>_<experiment-name>/tb/` con i log TensorBoard.
+- `runs/<model>/latest_run.txt` contiene il path dell'ultimo run (usato per `--resume`).

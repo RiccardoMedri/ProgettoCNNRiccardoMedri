@@ -38,7 +38,9 @@
                         "hue": {"type": "number"},
                         "random_scale": {"type": "boolean"},
                         "scale_min": {"type": "number"},
-                        "scale_max": {"type": "number"}
+                        "scale_max": {"type": "number"},
+                        "multi_scale": {"type": "boolean"},
+                        "multi_scale_sizes": {"type": "array"}
                     }
                 },
                 "train": {
@@ -79,12 +81,15 @@
                 "early_stop_metric": {"type": "string"},
                 "use_amp": {"type": "boolean"},
                 "gradient_clip_norm": {"type": ["number", "null"]},
+                "gradient_accumulation_steps": {"type": "integer"},
                 "log_interval": {"type": "integer"},
                 "save_predictions_every": {"type": "integer"},
                 "prediction_samples": {"type": "integer"},
                 "prediction_score_threshold": {"type": "number"},
                 "runs_dir": {"type": "string"},
                 "checkpoint_path": {"type": "string"},
+                "warmup_epochs": {"type": "integer"},
+                "warmup_start_factor": {"type": "number"},
                 "optimizer": {
                     "type": "object",
                     "properties": {
@@ -100,15 +105,24 @@
         "evaluation": {
             "type": "object",
             "properties": {
-                "iou_threshold": {"type": "number"}
+                "iou_threshold": {"type": "number"},
+                "score_threshold": {"type": "number"}
             },
-            "required": ["iou_threshold"]
+            "required": ["iou_threshold", "score_threshold"]
         },
         "models": {
             "type": "object",
             "properties": {
                 "yolov11": {"type": "object"},
-                "retinanet": {"type": "object"},
+                "retinanet": {
+                    "type": "object",
+                    "properties": {
+                        "type": {"type": "string"},
+                        "weights": {"type": ["string", "null"]},
+                        "trainable_backbone_layers": {"type": "integer"},
+                        "anchors": {"type": "object"}
+                    }
+                },
                 "faster_rcnn": {"type": "object"}
             },
             "required": ["yolov11", "retinanet", "faster_rcnn"]

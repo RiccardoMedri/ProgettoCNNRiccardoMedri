@@ -30,6 +30,33 @@
         }
     },
     {
+        "name": "retinanet_lr_1e4",
+        "model": "retinanet",
+        "overrides": {
+            "training": {
+                "optimizer": {"lr": 0.0001, "weight_decay": 0.0001}
+            }
+        }
+    },
+    {
+        "name": "retinanet_lr_2e4",
+        "model": "retinanet",
+        "overrides": {
+            "training": {
+                "optimizer": {"lr": 0.0002, "weight_decay": 0.0001}
+            }
+        }
+    },
+    {
+        "name": "retinanet_lr_3e4",
+        "model": "retinanet",
+        "overrides": {
+            "training": {
+                "optimizer": {"lr": 0.0003, "weight_decay": 0.0001}
+            }
+        }
+    },
+    {
         "name": "yolov11_small",
         "model": "yolov11",
         "overrides": {

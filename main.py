@@ -1,5 +1,7 @@
 import argparse
 import json
+import os
+import time
 
 import torch
 
@@ -88,15 +90,28 @@ def run_single_model(model_name, config, resume):
         lr=optimizer_cfg["lr"],
         weight_decay=optimizer_cfg["weight_decay"],
     )
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-        optimizer, T_max=config["training"]["epochs"], eta_min=optimizer_cfg["min_lr"]
-    )
+    scheduler = build_scheduler(optimizer, config)
 
-    start_epoch = 0
+    runs_dir = config["training"]["runs_dir"]
+    model_run_dir = os.path.join(runs_dir, model_name)
+    os.makedirs(model_run_dir, exist_ok=True)
+    latest_path = os.path.join(model_run_dir, "latest_run.txt")
+
     if resume:
-        checkpoint_path = config["training"]["checkpoint_path"]
-        start_epoch = load_checkpoint(model, optimizer, checkpoint_path)
+        if not os.path.exists(latest_path):
+            raise SystemExit(f"Nessun run precedente trovato per {model_name}.")
+        with open(latest_path, "r") as f:
+            run_dir = f.read().strip()
+        checkpoint_path = os.path.join(run_dir, "best_model.pth")
+        start_epoch = load_checkpoint(model, optimizer, checkpoint_path, scheduler)
         print(f"Ripresa addestramento da epoca {start_epoch + 1}")
+    else:
+        timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+        run_name = f"{timestamp}_{config['experiment']['name']}"
+        run_dir = os.path.join(model_run_dir, run_name)
+        with open(latest_path, "w") as f:
+            f.write(run_dir)
+        start_epoch = 0
 
     label_offset = -1 if model_name == "retinanet" else 0
     train_detection(
@@ -109,7 +124,33 @@ def run_single_model(model_name, config, resume):
         device,
         start_epoch=start_epoch,
         label_offset=label_offset,
-        model_name=model_name,
+        run_dir=run_dir,
+    )
+
+
+def build_scheduler(optimizer, config):
+    training_cfg = config["training"]
+    optimizer_cfg = training_cfg["optimizer"]
+    total_epochs = training_cfg["epochs"]
+    warmup_epochs = int(training_cfg.get("warmup_epochs", 0))
+    warmup_start_factor = float(training_cfg.get("warmup_start_factor", 0.1))
+
+    cosine_epochs = max(total_epochs - warmup_epochs, 1)
+    cosine = torch.optim.lr_scheduler.CosineAnnealingLR(
+        optimizer, T_max=cosine_epochs, eta_min=optimizer_cfg["min_lr"]
+    )
+
+    if warmup_epochs <= 0:
+        return cosine
+
+    warmup = torch.optim.lr_scheduler.LinearLR(
+        optimizer, start_factor=warmup_start_factor, total_iters=warmup_epochs
+    )
+    if warmup_epochs >= total_epochs:
+        return warmup
+
+    return torch.optim.lr_scheduler.SequentialLR(
+        optimizer, schedulers=[warmup, cosine], milestones=[warmup_epochs]
     )
 
 

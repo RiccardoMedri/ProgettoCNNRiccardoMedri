@@ -1,4 +1,5 @@
 import csv
+import json
 import os
 import time
 
@@ -23,28 +24,38 @@ def train_detection(
     device,
     start_epoch=0,
     label_offset=0,
-    model_name="model",
+    run_dir=None,
 ):
     runs_dir = config["training"]["runs_dir"]
     os.makedirs(runs_dir, exist_ok=True)
     os.makedirs(os.path.dirname(config["training"]["checkpoint_path"]), exist_ok=True)
 
-    timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-    run_name = f"{timestamp}_{config['experiment']['name']}"
-    run_dir = os.path.join(runs_dir, model_name, run_name)
+    if run_dir is None:
+        timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
+        run_name = f"{timestamp}_{config['experiment']['name']}"
+        run_dir = os.path.join(runs_dir, "model", run_name)
     tb_dir = os.path.join(run_dir, "tb")
     writer = SummaryWriter(tb_dir)
     results_csv = os.path.join(run_dir, "results.csv")
+    checkpoint_path = os.path.join(run_dir, "best_model.pth")
+    config_path = os.path.join(run_dir, "run_config.json")
+    if not os.path.exists(config_path):
+        with open(config_path, "w") as f:
+            json.dump(config, f, indent=2)
     epochs = config["training"]["epochs"]
     early_stopping = EarlyStopping(
         patience=config["training"]["patience"],
         delta=config["training"]["delta"],
         mode=config["training"]["early_stop_mode"],
-        checkpoint_path=config["training"]["checkpoint_path"],
+        checkpoint_path=checkpoint_path,
     )
     sum_time = 0.0
-    scaler = torch.cuda.amp.GradScaler(enabled=config["training"]["use_amp"])
-    metrics = DetectionMetrics(iou_threshold=config["evaluation"]["iou_threshold"])
+    scaler = torch.amp.GradScaler("cuda", enabled=config["training"]["use_amp"])
+    metrics = DetectionMetrics(
+        iou_threshold=config["evaluation"]["iou_threshold"],
+        score_threshold=config["evaluation"]["score_threshold"],
+    )
+    accum_steps = max(int(config["training"].get("gradient_accumulation_steps", 1)), 1)
 
     model.to(device)
     model.train()
@@ -54,6 +65,7 @@ def train_detection(
             start_time = time.time()
             running_loss = 0.0
             model.train()
+            optimizer.zero_grad(set_to_none=True)
 
             for step, (images, targets) in enumerate(train_loader):
                 images = [img.to(device) for img in images]
@@ -62,27 +74,29 @@ def train_detection(
                     for t in targets:
                         t["labels"] = (t["labels"] + label_offset).clamp(min=0)
 
-                optimizer.zero_grad(set_to_none=True)
-
-                with torch.cuda.amp.autocast(enabled=config["training"]["use_amp"]):
+                with torch.amp.autocast("cuda", enabled=config["training"]["use_amp"]):
                     loss_dict = model(images, targets)
                     loss = sum(loss_dict.values())
+                    loss_value = loss.item()
+                    loss = loss / accum_steps
 
                 scaler.scale(loss).backward()
-                if config["training"]["gradient_clip_norm"] is not None:
-                    scaler.unscale_(optimizer)
-                    torch.nn.utils.clip_grad_norm_(
-                        model.parameters(), config["training"]["gradient_clip_norm"]
-                    )
-                scaler.step(optimizer)
-                scaler.update()
+                if (step + 1) % accum_steps == 0 or (step + 1) == len(train_loader):
+                    if config["training"]["gradient_clip_norm"] is not None:
+                        scaler.unscale_(optimizer)
+                        torch.nn.utils.clip_grad_norm_(
+                            model.parameters(), config["training"]["gradient_clip_norm"]
+                        )
+                    scaler.step(optimizer)
+                    scaler.update()
+                    optimizer.zero_grad(set_to_none=True)
 
-                running_loss += loss.item()
+                running_loss += loss_value
 
                 if step % config["training"]["log_interval"] == 0:
                     print(
                         f"[Epoch {epoch + 1}/{epochs}] Step {step} "
-                        f"Loss: {loss.item():.4f}"
+                        f"Loss: {loss_value:.4f}"
                     )
 
             train_loss = running_loss / max(len(train_loader), 1)
@@ -106,10 +120,7 @@ def train_detection(
             writer.add_scalar("Metrics/Recall", recall, epoch)
             writer.add_scalar("Metrics/F1", f1, epoch)
 
-            map_per_class = val_metrics.get("map_per_class", None)
-            if map_per_class is not None:
-                for class_name, ap in zip(class_names, map_per_class.detach().cpu().tolist()):
-                    writer.add_scalar(f"Metrics/AP/{class_name}", ap, epoch)
+            per_class_list = None
             writer.add_scalar("Learning Rate", scheduler.get_last_lr()[0], epoch)
 
             epoch_time = calculate_epoch_time(start_time)
@@ -141,7 +152,7 @@ def train_detection(
                 f1,
                 scheduler.get_last_lr()[0],
                 epoch_time,
-                map_per_class,
+                per_class_list,
             )
 
             save_every = config["training"].get("save_predictions_every", 0)
@@ -163,11 +174,13 @@ def train_detection(
                     device=device,
                 )
 
-            scheduler.step(val_loss)
+            scheduler.step()
             stop_metric = val_loss
             if config["training"]["early_stop_metric"] == "map_50":
                 stop_metric = float(val_metrics.get("map_50", 0.0))
-            early_stopping(stop_metric, model, optimizer, epoch)
+            elif config["training"]["early_stop_metric"] == "map_50_95":
+                stop_metric = float(val_metrics.get("map", 0.0))
+            early_stopping(stop_metric, model, optimizer, epoch, scheduler)
             if early_stopping.early_stop:
                 break
 
@@ -199,7 +212,6 @@ def write_results_row(
     with open(csv_path, "a", newline="") as f:
         writer = csv.writer(f)
         if not file_exists:
-            per_class_headers = [f"ap_{name}" for name in class_names]
             writer.writerow(
                 [
                     "epoch",
@@ -213,11 +225,6 @@ def write_results_row(
                     "lr",
                     "epoch_time_sec",
                 ]
-                + per_class_headers
             )
         row = [epoch, train_loss, val_loss, map_50, map_all, precision, recall, f1, lr, epoch_time]
-        if map_per_class is not None:
-            per_class = map_per_class.detach().cpu().tolist()
-        else:
-            per_class = ["" for _ in class_names]
-        writer.writerow(row + per_class)
+        writer.writerow(row)

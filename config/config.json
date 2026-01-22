@@ -5,9 +5,9 @@
         "device": "cuda"
     },
     "data": {
-        "batch_size": 8,
-        "num_workers": 4,
-        "image_size": 640,
+        "batch_size": 2,
+        "num_workers": 6,
+        "image_size": 960,
         "num_classes": 10,
         "class_map": {
             "1": 1,
@@ -30,13 +30,15 @@
             "horizontal_flip": true,
             "flip_prob": 0.5,
             "color_jitter": true,
-            "brightness": 0.3,
-            "contrast": 0.3,
-            "saturation": 0.3,
+            "brightness": 0.2,
+            "contrast": 0.2,
+            "saturation": 0.2,
             "hue": 0.08,
-            "random_scale": true,
+            "random_scale": false,
             "scale_min": 0.8,
-            "scale_max": 1.25
+            "scale_max": 1.25,
+            "multi_scale": true,
+            "multi_scale_sizes": [832, 896, 960]
         },
         "train": {
             "images_dir": "data/VisDrone2019-DET-train/images",
@@ -53,27 +55,31 @@
         }
     },
     "training": {
-        "epochs": 50,
-        "patience": 7,
-        "delta": 0.001,
-        "early_stop_mode": "min",
-        "early_stop_metric": "val_loss",
+        "epochs": 70,
+        "patience": 10,
+        "delta": 0.004,
+        "early_stop_mode": "max",
+        "early_stop_metric": "map_50_95",
         "use_amp": true,
         "gradient_clip_norm": 5.0,
+        "gradient_accumulation_steps": 2,
         "log_interval": 25,
         "save_predictions_every": 10,
         "prediction_samples": 4,
         "prediction_score_threshold": 0.4,
         "runs_dir": "runs",
         "checkpoint_path": "models/best_model.pth",
+        "warmup_epochs": 3,
+        "warmup_start_factor": 0.1,
         "optimizer": {
-            "lr": 0.0003,
+            "lr": 0.0002,
             "min_lr": 0.000001,
             "weight_decay": 0.0001
         }
     },
     "evaluation": {
-        "iou_threshold": 0.5
+        "iou_threshold": 0.5,
+        "score_threshold": 0.25
     },
     "models": {
         "yolov11": {
@@ -82,12 +88,21 @@
         },
         "retinanet": {
             "type": "retinanet",
-            "trainable_backbone_layers": 4
+            "weights": "runs/retinanet/2026-01-21_16-16-38_visdrone_det_baseline/best_model.pth",
+            "trainable_backbone_layers": 3,
+            "anchors": {
+                "sizes": [16, 32, 64, 128, 256],
+                "aspect_ratios": [0.5, 1.0, 2.0]
+            }
         },
         "faster_rcnn": {
             "type": "faster_rcnn",
             "backbone": "resnet50_fpn_v2",
-            "trainable_backbone_layers": 3
+            "trainable_backbone_layers": 3,
+            "anchors": {
+                "sizes": [16, 32, 64, 128, 256],
+                "aspect_ratios": [0.5, 1.0, 2.0]
+            }
         }
     }
 }

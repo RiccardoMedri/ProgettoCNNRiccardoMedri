@@ -30,6 +30,8 @@ class Resize:
             boxes = target["boxes"]
             boxes[:, [0, 2]] = boxes[:, [0, 2]] * scale_x
             boxes[:, [1, 3]] = boxes[:, [1, 3]] * scale_y
+            boxes[:, [0, 2]] = boxes[:, [0, 2]].clamp(0, new_w)
+            boxes[:, [1, 3]] = boxes[:, [1, 3]].clamp(0, new_h)
             target["boxes"] = boxes
         return image, target
 
@@ -48,6 +50,7 @@ class RandomHorizontalFlip:
                 xmax = w - boxes[:, 0]
                 boxes[:, 0] = xmin
                 boxes[:, 2] = xmax
+                boxes[:, [0, 2]] = boxes[:, [0, 2]].clamp(0, w)
                 target["boxes"] = boxes
         return image, target
 
@@ -83,6 +86,30 @@ class RandomScale:
             boxes = target["boxes"]
             boxes[:, [0, 2]] = boxes[:, [0, 2]] * (new_w / orig_w)
             boxes[:, [1, 3]] = boxes[:, [1, 3]] * (new_h / orig_h)
+            boxes[:, [0, 2]] = boxes[:, [0, 2]].clamp(0, new_w)
+            boxes[:, [1, 3]] = boxes[:, [1, 3]].clamp(0, new_h)
+            target["boxes"] = boxes
+        return image, target
+
+
+class RandomResize:
+    def __init__(self, sizes):
+        self.sizes = [int(s) for s in sizes]
+
+    def __call__(self, image, target):
+        size = random.choice(self.sizes)
+        orig_w, orig_h = image.size
+        image = F.resize(image, (size, size))
+        new_w, new_h = image.size
+
+        if "boxes" in target and target["boxes"].numel() > 0:
+            scale_x = new_w / orig_w
+            scale_y = new_h / orig_h
+            boxes = target["boxes"]
+            boxes[:, [0, 2]] = boxes[:, [0, 2]] * scale_x
+            boxes[:, [1, 3]] = boxes[:, [1, 3]] * scale_y
+            boxes[:, [0, 2]] = boxes[:, [0, 2]].clamp(0, new_w)
+            boxes[:, [1, 3]] = boxes[:, [1, 3]].clamp(0, new_h)
             target["boxes"] = boxes
         return image, target
 
@@ -127,5 +154,12 @@ def build_transforms(config, train=True):
                     hue=aug.get("hue", 0.05),
                 )
             )
-    transforms.extend([Resize((size, size)), ToTensor(), Normalize(mean, std)])
+        if aug.get("multi_scale", False):
+            sizes = aug.get("multi_scale_sizes", [size])
+            transforms.append(RandomResize(sizes))
+        else:
+            transforms.append(Resize((size, size)))
+    else:
+        transforms.append(Resize((size, size)))
+    transforms.extend([ToTensor(), Normalize(mean, std)])
     return Compose(transforms)
