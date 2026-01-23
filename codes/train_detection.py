@@ -110,6 +110,7 @@ def train_detection(
             map_all = float(val_metrics.get("map", 0.0))
             precision = float(val_metrics.get("precision", 0.0))
             recall = float(val_metrics.get("recall", 0.0))
+            pr_auc = float(val_metrics.get("pr_auc", 0.0))
             f1 = 0.0
             if precision + recall > 0:
                 f1 = 2 * precision * recall / (precision + recall)
@@ -119,6 +120,7 @@ def train_detection(
             writer.add_scalar("Metrics/Precision", precision, epoch)
             writer.add_scalar("Metrics/Recall", recall, epoch)
             writer.add_scalar("Metrics/F1", f1, epoch)
+            writer.add_scalar("Metrics/PR_AUC", pr_auc, epoch)
 
             per_class_list = None
             writer.add_scalar("Learning Rate", scheduler.get_last_lr()[0], epoch)
@@ -150,6 +152,7 @@ def train_detection(
                 precision,
                 recall,
                 f1,
+                pr_auc,
                 scheduler.get_last_lr()[0],
                 epoch_time,
                 per_class_list,
@@ -204,6 +207,7 @@ def write_results_row(
     precision,
     recall,
     f1,
+    pr_auc,
     lr,
     epoch_time,
     map_per_class,
@@ -222,9 +226,23 @@ def write_results_row(
                     "precision",
                     "recall",
                     "f1",
+                    "pr_auc",
                     "lr",
                     "epoch_time_sec",
                 ]
             )
-        row = [epoch, train_loss, val_loss, map_50, map_all, precision, recall, f1, lr, epoch_time]
+        row = [
+            epoch,
+            train_loss,
+            val_loss,
+            map_50,
+            map_all,
+            precision,
+            recall,
+            f1,
+            pr_auc,
+            lr,
+            epoch_time,
+        ]
         writer.writerow(row)
+

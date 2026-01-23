@@ -31,6 +31,12 @@ class DetectionMetrics:
     def compute(self) -> dict:
         if self._metric is not None:
             metric_vals = self._metric.compute()
+            tm_precision = metric_vals.get("precision")
+            if tm_precision is not None and torch.is_tensor(tm_precision):
+                pr_curve = self._extract_pr_curve(tm_precision)
+                if pr_curve is not None:
+                    recalls, precisions = pr_curve
+                    metric_vals["pr_auc"] = self._compute_pr_auc(recalls, precisions)
             pr_tp = self._pr_stats["tp"]
             pr_fp = self._pr_stats["fp"]
             pr_fn = self._pr_stats["fn"]
@@ -118,6 +124,31 @@ class DetectionMetrics:
         self._pr_stats["tp"] += tp
         self._pr_stats["fp"] += fp
         self._pr_stats["fn"] += fn
+
+    def _extract_pr_curve(self, precision_tensor: torch.Tensor):
+        p = precision_tensor.detach().cpu()
+        if p.numel() == 0:
+            return None
+
+        # Select IoU=0.5 if present, then average over remaining dims.
+        if p.ndim >= 1:
+            p = p[0]
+        while p.ndim > 1:
+            p = p.mean(dim=-1)
+        if p.ndim != 1:
+            return None
+
+        recalls = torch.linspace(0.0, 1.0, p.numel())
+        return recalls, p
+
+    def _compute_pr_auc(self, recalls: torch.Tensor, precisions: torch.Tensor) -> torch.Tensor:
+        if recalls.numel() == 0 or precisions.numel() == 0:
+            return torch.tensor(0.0)
+        # Ensure sorted by recall for trapezoidal integration.
+        sort_idx = torch.argsort(recalls)
+        r = recalls[sort_idx]
+        p = precisions[sort_idx]
+        return torch.trapz(p, r)
 
 
 def box_iou(boxes1: torch.Tensor, boxes2: torch.Tensor) -> torch.Tensor:

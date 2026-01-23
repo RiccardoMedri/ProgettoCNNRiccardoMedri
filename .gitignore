@@ -1,0 +1,24 @@
+# Data and datasets
+data/VisDrone2019-DET-train/
+data/VisDrone2019-DET-val/
+data/VisDrone2019-DET-YOLO/
+data/**/*.zip
+data/**/*.tar
+data/**/*.tar.gz
+history*.txt
+
+# Model artifacts and logs
+models/*.pth
+runs/
+*.pt
+*.pth
+
+# Notebooks and caches
+**/.ipynb_checkpoints/
+__pycache__/
+*.pyc
+
+# Environment files
+.conda/
+.venv/
+*.env

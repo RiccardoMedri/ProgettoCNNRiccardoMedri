@@ -119,8 +119,7 @@
                     "properties": {
                         "type": {"type": "string"},
                         "weights": {"type": ["string", "null"]},
-                        "trainable_backbone_layers": {"type": "integer"},
-                        "anchors": {"type": "object"}
+                        "trainable_backbone_layers": {"type": "integer"}
                     }
                 },
                 "faster_rcnn": {"type": "object"}
