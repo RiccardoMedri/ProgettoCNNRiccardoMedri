@@ -55,8 +55,8 @@
         }
     },
     "training": {
-        "epochs": 15,
-        "patience": 10,
+        "epochs": 40,
+        "patience": 6,
         "delta": 0.0025,
         "early_stop_mode": "max",
         "early_stop_metric": "map_50_95",
@@ -65,14 +65,14 @@
         "gradient_accumulation_steps": 2,
         "log_interval": 25,
         "save_predictions_every": 10,
-        "prediction_samples": 4,
+        "prediction_samples": 2,
         "prediction_score_threshold": 0.4,
         "runs_dir": "runs",
         "checkpoint_path": "models/best_model.pth",
         "warmup_epochs": 3,
         "warmup_start_factor": 0.1,
         "optimizer": {
-            "lr": 0.0001,
+            "lr": 0.0003,
             "min_lr": 0.000001,
             "weight_decay": 0.0001
         }
@@ -84,17 +84,17 @@
     "models": {
         "yolov11": {
             "type": "yolov11",
-            "weights": "yolov11s.pt"
+            "weights": "C:/Users/Riccardo/Documents/Progetto Machine Learning/ProgettoConfronto/runs/yolov11/2026-01-24_15-41-38_yolov11/weights/best.pt"
         },
         "retinanet": {
             "type": "retinanet",
-            "weights": "C:/Users/Riccardo/Documents/Progetto Machine Learning/ProgettoConfronto/runs/retinanet/2026-01-23_00-02-18_retinanet_lr_3e4/best_model.pth",
+            "weights": "coco",
             "trainable_backbone_layers": 3
         },
         "faster_rcnn": {
             "type": "faster_rcnn",
-            "backbone": "resnet50_fpn_v2",
-            "trainable_backbone_layers": 3
+            "weights": "C:/Users/Riccardo/Documents/Progetto Machine Learning/ProgettoConfronto/runs/faster_rcnn/2026-01-23_19-59-37_frcnn_high_lr/best_model.pth",
+            "trainable_backbone_layers": 5
         }
     }
 }

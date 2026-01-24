@@ -122,7 +122,14 @@
                         "trainable_backbone_layers": {"type": "integer"}
                     }
                 },
-                "faster_rcnn": {"type": "object"}
+                "faster_rcnn": {
+                    "type": "object",
+                    "properties": {
+                        "type": {"type": "string"},
+                        "weights": {"type": ["string", "null"]},
+                        "trainable_backbone_layers": {"type": "integer"}
+                    }
+                }
             },
             "required": ["yolov11", "retinanet", "faster_rcnn"]
         }

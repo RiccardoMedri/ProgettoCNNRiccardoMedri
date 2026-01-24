@@ -1,28 +1,59 @@
 import os
 from typing import Dict
+from torchvision.models.detection import (
+    retinanet_resnet50_fpn_v2,
+    fasterrcnn_resnet50_fpn_v2,
+    RetinaNet_ResNet50_FPN_V2_Weights,
+    FasterRCNN_ResNet50_FPN_V2_Weights,
+)
+from torchvision.models.detection.retinanet import RetinaNetClassificationHead
+from torchvision.models import ResNet50_Weights
+from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+import torch
 
 
 def build_detector(model_cfg: Dict, num_classes: int):
     model_type = model_cfg["type"].lower()
 
     if model_type == "faster_rcnn":
-        from torchvision.models.detection import (
-            fasterrcnn_resnet50_fpn,
-            fasterrcnn_resnet50_fpn_v2,
-        )
-        from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
+        weights_cfg = model_cfg.get("weights", "default")
+        if isinstance(weights_cfg, str):
+            weights_cfg = weights_cfg.strip()
 
-        backbone = model_cfg.get("backbone", "resnet50_fpn_v2").lower()
-        if backbone == "resnet50_fpn_v2":
+        is_none = weights_cfg in (None, "", "none")
+        is_coco = isinstance(weights_cfg, str) and weights_cfg.lower() in ("coco", "default")
+        is_path = isinstance(weights_cfg, str) and os.path.exists(weights_cfg)
+        if not (is_none or is_coco or is_path):
+            raise ValueError(f"Pesi Faster R-CNN non validi: {weights_cfg}")
+
+        trainable_backbone_layers = model_cfg.get("trainable_backbone_layers", 3)
+
+        if is_none:
             model = fasterrcnn_resnet50_fpn_v2(
-                weights="DEFAULT",
-                trainable_backbone_layers=model_cfg.get("trainable_backbone_layers", 3),
+                weights=None,
+                weights_backbone=ResNet50_Weights.DEFAULT,
+                trainable_backbone_layers=trainable_backbone_layers,
+            )
+        elif is_coco:
+            weights = FasterRCNN_ResNet50_FPN_V2_Weights.DEFAULT
+            model = fasterrcnn_resnet50_fpn_v2(
+                weights=weights,
+                weights_backbone=None,
+                trainable_backbone_layers=trainable_backbone_layers,
             )
         else:
-            model = fasterrcnn_resnet50_fpn(
-                weights="DEFAULT",
-                trainable_backbone_layers=model_cfg.get("trainable_backbone_layers", 3),
+            model = fasterrcnn_resnet50_fpn_v2(
+                weights=None,
+                weights_backbone=ResNet50_Weights.DEFAULT,
+                trainable_backbone_layers=trainable_backbone_layers,
             )
+            in_features = model.roi_heads.box_predictor.cls_score.in_features
+            effective_classes = num_classes + 1
+            model.roi_heads.box_predictor = FastRCNNPredictor(in_features, effective_classes)
+            checkpoint = torch.load(weights_cfg, map_location="cpu")
+            state_dict = checkpoint.get("model_state_dict", checkpoint)
+            model.load_state_dict(state_dict, strict=False)
+            return model
 
         in_features = model.roi_heads.box_predictor.cls_score.in_features
         effective_classes = num_classes + 1
@@ -30,14 +61,6 @@ def build_detector(model_cfg: Dict, num_classes: int):
         return model
 
     if model_type == "retinanet":
-        from torchvision.models.detection import (
-            retinanet_resnet50_fpn_v2,
-            RetinaNet_ResNet50_FPN_V2_Weights,
-        )
-        from torchvision.models.detection.retinanet import RetinaNetClassificationHead
-        from torchvision.models import ResNet50_Weights
-        import torch
-
         effective_classes = num_classes
         weights_cfg = model_cfg.get("weights", "coco")
         if isinstance(weights_cfg, str):

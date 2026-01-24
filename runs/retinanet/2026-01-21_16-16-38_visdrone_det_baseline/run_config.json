@@ -1,0 +1,113 @@
+{
+  "experiment": {
+    "name": "visdrone_det_baseline",
+    "seed": 42,
+    "device": "cuda"
+  },
+  "data": {
+    "batch_size": 4,
+    "num_workers": 6,
+    "image_size": 800,
+    "num_classes": 10,
+    "class_map": {
+      "1": 1,
+      "2": 2,
+      "3": 3,
+      "4": 4,
+      "5": 5,
+      "6": 6,
+      "7": 7,
+      "8": 8,
+      "9": 9,
+      "10": 10
+    },
+    "valid_categories": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "normalize": {
+      "mean": [
+        0.485,
+        0.456,
+        0.406
+      ],
+      "std": [
+        0.229,
+        0.224,
+        0.225
+      ]
+    },
+    "augmentation": {
+      "horizontal_flip": true,
+      "flip_prob": 0.5,
+      "color_jitter": true,
+      "brightness": 0.2,
+      "contrast": 0.2,
+      "saturation": 0.2,
+      "hue": 0.08,
+      "random_scale": false,
+      "scale_min": 0.8,
+      "scale_max": 1.25
+    },
+    "train": {
+      "images_dir": "data/VisDrone2019-DET-train/images",
+      "annotations_dir": "data/VisDrone2019-DET-train/annotations"
+    },
+    "val": {
+      "images_dir": "data/VisDrone2019-DET-val/images",
+      "annotations_dir": "data/VisDrone2019-DET-val/annotations"
+    },
+    "yolo": {
+      "dataset_root": "data/VisDrone2019-DET-YOLO",
+      "auto_convert": true,
+      "yaml_path": "data/VisDrone2019-DET-YOLO/visdrone.yaml"
+    }
+  },
+  "training": {
+    "epochs": 70,
+    "patience": 15,
+    "delta": 0.001,
+    "early_stop_mode": "max",
+    "early_stop_metric": "map_50",
+    "use_amp": true,
+    "gradient_clip_norm": 5.0,
+    "log_interval": 25,
+    "save_predictions_every": 10,
+    "prediction_samples": 4,
+    "prediction_score_threshold": 0.4,
+    "runs_dir": "runs",
+    "checkpoint_path": "models/best_model.pth",
+    "optimizer": {
+      "lr": 0.0002,
+      "min_lr": 1e-06,
+      "weight_decay": 0.0001
+    }
+  },
+  "evaluation": {
+    "iou_threshold": 0.5,
+    "score_threshold": 0.4
+  },
+  "models": {
+    "yolov11": {
+      "type": "yolov11",
+      "weights": "yolov11s.pt"
+    },
+    "retinanet": {
+      "type": "retinanet",
+      "trainable_backbone_layers": 3
+    },
+    "faster_rcnn": {
+      "type": "faster_rcnn",
+      "backbone": "resnet50_fpn_v2",
+      "trainable_backbone_layers": 3
+    }
+  }
+}

@@ -9,7 +9,6 @@ history*.txt
 
 # Model artifacts and logs
 models/*.pth
-runs/
 *.pt
 *.pth
 

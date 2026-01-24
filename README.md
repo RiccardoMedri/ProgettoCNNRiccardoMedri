@@ -79,12 +79,12 @@ python main.py --model yolov11
 
 Esecuzione esperimenti predefiniti:
 ```bash
-python main.py --run all
+python main.py --model faster_rcnn
 ```
 
 Oppure un singolo esperimento:
 ```bash
-python main.py --run frcnn_high_lr
+python main.py --model faster_rcnn --resume
 ```
 
 Ripresa da checkpoint:

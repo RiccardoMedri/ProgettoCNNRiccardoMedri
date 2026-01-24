@@ -11,7 +11,6 @@ from data.data_loader import load_data
 from models.detectors import build_detector, build_yolo
 from utils.checkpoints import load_checkpoint
 from utils.clear_console import clear_console
-from utils.config_utils import deep_merge
 from utils.time_manager import get_current_time
 
 
@@ -19,8 +18,6 @@ def parse_args():
     parser = argparse.ArgumentParser(description="VisDrone2019 Object Detection Trainer")
     parser.add_argument("--config", default="config/config.json", help="Path to config JSON")
     parser.add_argument("--model", choices=["yolov11", "retinanet", "faster_rcnn"])
-    parser.add_argument("--experiments", default="config/experiments.json", help="Path to experiments JSON")
-    parser.add_argument("--run", help="Run a named experiment from experiments.json or 'all'")
     parser.add_argument("--resume", action="store_true", help="Resume from checkpoint if available")
     return parser.parse_args()
 
@@ -45,37 +42,16 @@ def main():
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(config["experiment"]["seed"])
 
-    if args.run:
-        run_experiments(args, config)
-        return
-
     if not args.model:
-        raise SystemExit("Specifica --model oppure --run.")
+        raise SystemExit("Specifica --model.")
 
     run_single_model(args.model, config, args.resume)
-
-
-def run_experiments(args, base_config):
-    with open(args.experiments, "r") as f:
-        experiments = json.load(f)
-
-    if args.run == "all":
-        selected = experiments
-    else:
-        selected = [exp for exp in experiments if exp["name"] == args.run]
-        if not selected:
-            raise SystemExit(f"Esperimento '{args.run}' non trovato.")
-
-    for exp in selected:
-        config = deep_merge(base_config, exp.get("overrides", {}))
-        config["experiment"]["name"] = exp["name"]
-        run_single_model(exp["model"], config, args.resume)
 
 
 def run_single_model(model_name, config, resume):
     if model_name == "yolov11":
         yolo_model = build_yolo(config["models"]["yolov11"])
-        train_yolo(config, yolo_model)
+        train_yolo(config, yolo_model, resume=resume)
         return
 
     train_loader, val_loader = load_data(config)
@@ -103,11 +79,11 @@ def run_single_model(model_name, config, resume):
         with open(latest_path, "r") as f:
             run_dir = f.read().strip()
         checkpoint_path = os.path.join(run_dir, "best_model.pth")
-        start_epoch = load_checkpoint(model, optimizer, checkpoint_path, scheduler)
+        start_epoch = load_checkpoint(model, optimizer, checkpoint_path, scheduler, device=device)
         print(f"Ripresa addestramento da epoca {start_epoch + 1}")
     else:
         timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
-        run_name = f"{timestamp}_{config['experiment']['name']}"
+        run_name = f"{timestamp}_{model_name}"
         run_dir = os.path.join(model_run_dir, run_name)
         with open(latest_path, "w") as f:
             f.write(run_dir)
