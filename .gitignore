@@ -5,6 +5,7 @@ data/VisDrone2019-DET-YOLO/
 data/**/*.zip
 data/**/*.tar
 data/**/*.tar.gz
+Test/
 history*.txt
 
 # Model artifacts and logs

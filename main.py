@@ -71,22 +71,20 @@ def run_single_model(model_name, config, resume):
     runs_dir = config["training"]["runs_dir"]
     model_run_dir = os.path.join(runs_dir, model_name)
     os.makedirs(model_run_dir, exist_ok=True)
-    latest_path = os.path.join(model_run_dir, "latest_run.txt")
 
     if resume:
-        if not os.path.exists(latest_path):
-            raise SystemExit(f"Nessun run precedente trovato per {model_name}.")
-        with open(latest_path, "r") as f:
-            run_dir = f.read().strip()
-        checkpoint_path = os.path.join(run_dir, "best_model.pth")
+        checkpoint_path = config["training"].get("resume_checkpoint_path")
+        if not checkpoint_path:
+            raise SystemExit("Imposta training.resume_checkpoint_path per riprendere il training.")
+        if not os.path.exists(checkpoint_path):
+            raise SystemExit(f"Checkpoint non trovato: {checkpoint_path}")
+        run_dir = os.path.dirname(checkpoint_path)
         start_epoch = load_checkpoint(model, optimizer, checkpoint_path, scheduler, device=device)
         print(f"Ripresa addestramento da epoca {start_epoch + 1}")
     else:
         timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
         run_name = f"{timestamp}_{model_name}"
         run_dir = os.path.join(model_run_dir, run_name)
-        with open(latest_path, "w") as f:
-            f.write(run_dir)
         start_epoch = 0
 
     label_offset = -1 if model_name == "retinanet" else 0

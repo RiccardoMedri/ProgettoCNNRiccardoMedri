@@ -3,6 +3,7 @@ from typing import Dict, List, Tuple
 
 import torch
 from PIL import Image
+from torchvision import tv_tensors
 
 
 class VisDroneDataset(torch.utils.data.Dataset):
@@ -67,6 +68,10 @@ class VisDroneDataset(torch.utils.data.Dataset):
 
         boxes_tensor = torch.as_tensor(boxes, dtype=torch.float32)
         labels_tensor = torch.as_tensor(labels, dtype=torch.int64)
+        width, height = image.size
+        boxes_tensor = tv_tensors.BoundingBoxes(
+            boxes_tensor, format="XYXY", canvas_size=(height, width)
+        )
 
         target = {
             "boxes": boxes_tensor,
@@ -75,7 +80,9 @@ class VisDroneDataset(torch.utils.data.Dataset):
         }
 
         if boxes_tensor.numel() > 0:
-            area = (boxes_tensor[:, 2] - boxes_tensor[:, 0]) * (boxes_tensor[:, 3] - boxes_tensor[:, 1])
+            area = (boxes_tensor[:, 2] - boxes_tensor[:, 0]) * (
+                boxes_tensor[:, 3] - boxes_tensor[:, 1]
+            )
         else:
             area = torch.zeros((0,), dtype=torch.float32)
         target["area"] = area

@@ -4,10 +4,12 @@ import torch
 from PIL import Image, ImageDraw
 
 
-def tensor_to_pil(tensor_image, normalize_cfg):
-    mean = torch.tensor(normalize_cfg["mean"]).view(3, 1, 1)
-    std = torch.tensor(normalize_cfg["std"]).view(3, 1, 1)
-    image = tensor_image.cpu() * std + mean
+def tensor_to_pil(tensor_image, normalize_cfg=None, apply_unnorm=True):
+    image = tensor_image.cpu()
+    if apply_unnorm and normalize_cfg is not None:
+        mean = torch.tensor(normalize_cfg["mean"]).view(3, 1, 1)
+        std = torch.tensor(normalize_cfg["std"]).view(3, 1, 1)
+        image = image * std + mean
     image = image.clamp(0, 1).mul(255).byte().permute(1, 2, 0).numpy()
     return Image.fromarray(image)
 
@@ -57,6 +59,7 @@ def save_prediction_samples(
     max_samples=4,
     zero_based_labels=False,
     device="cpu",
+    apply_unnorm=True,
 ):
     os.makedirs(output_dir, exist_ok=True)
     images, targets = batch
@@ -72,7 +75,7 @@ def save_prediction_samples(
         model.train()
 
     for idx, (img_tensor, output, target) in enumerate(zip(images, outputs, targets)):
-        image = tensor_to_pil(img_tensor, normalize_cfg)
+        image = tensor_to_pil(img_tensor, normalize_cfg, apply_unnorm=apply_unnorm)
         image = draw_targets(image, target, class_names, zero_based_labels, color="green")
         image = draw_detections(image, output, class_names, score_threshold, zero_based_labels, color="red")
         image.save(os.path.join(output_dir, f"sample_{idx + 1}.png"))

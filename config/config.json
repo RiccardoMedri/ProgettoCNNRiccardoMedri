@@ -37,7 +37,7 @@
             "random_scale": false,
             "scale_min": 0.8,
             "scale_max": 1.25,
-            "multi_scale": true,
+            "multi_scale": false,
             "multi_scale_sizes": [832, 896, 960]
         },
         "train": {
@@ -68,7 +68,7 @@
         "prediction_samples": 2,
         "prediction_score_threshold": 0.4,
         "runs_dir": "runs",
-        "checkpoint_path": "models/best_model.pth",
+        "resume_checkpoint_path": null,
         "warmup_epochs": 3,
         "warmup_start_factor": 0.1,
         "optimizer": {
@@ -79,7 +79,17 @@
     },
     "evaluation": {
         "iou_threshold": 0.5,
-        "score_threshold": 0.25
+        "score_threshold": 0.25,
+        "track_inference_time": false
+    },
+    "prediction": {
+        "score_threshold": 0.4,
+        "eval_use_score_threshold": true,
+        "model_weights": {
+            "yolov11": "C:/Users/Riccardo/Documents/Progetto Machine Learning/ProgettoConfronto/runs/yolov11/2026-01-24_15-41-38_yolov11/weights/best.pt",
+            "retinanet": "coco",
+            "faster_rcnn": "C:/Users/Riccardo/Documents/Progetto Machine Learning/ProgettoConfronto/runs/faster_rcnn/2026-01-23_19-59-37_frcnn_high_lr/best_model.pth"
+        }
     },
     "models": {
         "yolov11": {
@@ -89,12 +99,20 @@
         "retinanet": {
             "type": "retinanet",
             "weights": "coco",
-            "trainable_backbone_layers": 3
+            "trainable_backbone_layers": 3,
+            "transform": {
+                "min_size": [832, 896, 960],
+                "max_size": 960
+            }
         },
         "faster_rcnn": {
             "type": "faster_rcnn",
-            "weights": "C:/Users/Riccardo/Documents/Progetto Machine Learning/ProgettoConfronto/runs/faster_rcnn/2026-01-23_19-59-37_frcnn_high_lr/best_model.pth",
-            "trainable_backbone_layers": 5
+            "weights": "coco",
+            "trainable_backbone_layers": 3,
+            "transform": {
+                "min_size": 960,
+                "max_size": 960
+            }
         }
     }
 }

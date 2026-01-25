@@ -12,6 +12,21 @@ from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 import torch
 
 
+def _apply_transform_cfg(model, model_cfg: Dict):
+    transform_cfg = model_cfg.get("transform")
+    if not transform_cfg:
+        return
+    min_size = transform_cfg.get("min_size")
+    max_size = transform_cfg.get("max_size")
+    if min_size is not None:
+        if isinstance(min_size, (list, tuple)):
+            model.transform.min_size = list(min_size)
+        else:
+            model.transform.min_size = [int(min_size)]
+    if max_size is not None:
+        model.transform.max_size = int(max_size)
+
+
 def build_detector(model_cfg: Dict, num_classes: int):
     model_type = model_cfg["type"].lower()
 
@@ -53,11 +68,13 @@ def build_detector(model_cfg: Dict, num_classes: int):
             checkpoint = torch.load(weights_cfg, map_location="cpu")
             state_dict = checkpoint.get("model_state_dict", checkpoint)
             model.load_state_dict(state_dict, strict=False)
+            _apply_transform_cfg(model, model_cfg)
             return model
 
         in_features = model.roi_heads.box_predictor.cls_score.in_features
         effective_classes = num_classes + 1
         model.roi_heads.box_predictor = FastRCNNPredictor(in_features, effective_classes)
+        _apply_transform_cfg(model, model_cfg)
         return model
 
     if model_type == "retinanet":
@@ -81,6 +98,7 @@ def build_detector(model_cfg: Dict, num_classes: int):
                 num_classes=effective_classes,
                 trainable_backbone_layers=trainable_backbone_layers,
             )
+            _apply_transform_cfg(model, model_cfg)
             return model
 
         if is_coco:
@@ -95,6 +113,7 @@ def build_detector(model_cfg: Dict, num_classes: int):
             model.head.classification_head = RetinaNetClassificationHead(
                 in_channels, num_anchors, effective_classes
             )
+            _apply_transform_cfg(model, model_cfg)
             return model
 
         if is_path:
@@ -107,6 +126,7 @@ def build_detector(model_cfg: Dict, num_classes: int):
             checkpoint = torch.load(weights_cfg, map_location="cpu")
             state_dict = checkpoint.get("model_state_dict", checkpoint)
             model.load_state_dict(state_dict, strict=True)
+            _apply_transform_cfg(model, model_cfg)
             return model
 
     raise ValueError(f"Tipo modello non supportato: {model_type}")

@@ -82,15 +82,11 @@ Esecuzione esperimenti predefiniti:
 python main.py --model faster_rcnn
 ```
 
-Oppure un singolo esperimento:
-```bash
-python main.py --model faster_rcnn --resume
-```
-
 Ripresa da checkpoint:
 ```bash
 python main.py --model faster_rcnn --resume
 ```
+Imposta `training.resume_checkpoint_path` in `config/config.json` con il path del checkpoint da riprendere.
 
 Nota: per fermare l'addestramento su mAP anziche' loss, imposta
 `training.early_stop_metric` su `map_50` e `training.early_stop_mode` su `max`.
@@ -105,4 +101,3 @@ Output training (TorchVision):
 - `runs/<model>/<timestamp>_<experiment-name>/results.csv` con loss, mAP, precision/recall/F1 e learning rate per epoca.
 - `runs/<model>/<timestamp>_<experiment-name>/predictions/epoch_<N>/` con immagini annotate (GT in verde, pred in rosso).
 - `runs/<model>/<timestamp>_<experiment-name>/tb/` con i log TensorBoard.
-- `runs/<model>/latest_run.txt` contiene il path dell'ultimo run (usato per `--resume`).

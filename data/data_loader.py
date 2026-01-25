@@ -9,10 +9,11 @@ def load_data(config):
     val_cfg = config["data"]["val"]
 
     valid_categories = config["data"].get("valid_categories", None)
+    
     train_dataset = VisDroneDataset(
         images_dir=train_cfg["images_dir"],
         annotations_dir=train_cfg["annotations_dir"],
-        transforms=build_transforms(config, train=True),
+        transforms=build_transforms(config, train=True, use_model_internal_preprocessing=True),
         class_map=config["data"]["class_map"],
         valid_categories=valid_categories,
     )
@@ -20,7 +21,7 @@ def load_data(config):
     val_dataset = VisDroneDataset(
         images_dir=val_cfg["images_dir"],
         annotations_dir=val_cfg["annotations_dir"],
-        transforms=build_transforms(config, train=False),
+        transforms=build_transforms(config, train=False, use_model_internal_preprocessing=True),
         class_map=config["data"]["class_map"],
         valid_categories=valid_categories,
     )

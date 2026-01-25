@@ -87,7 +87,7 @@
                 "prediction_samples": {"type": "integer"},
                 "prediction_score_threshold": {"type": "number"},
                 "runs_dir": {"type": "string"},
-                "checkpoint_path": {"type": "string"},
+                "resume_checkpoint_path": {"type": ["string", "null"]},
                 "warmup_epochs": {"type": "integer"},
                 "warmup_start_factor": {"type": "number"},
                 "optimizer": {
@@ -100,15 +100,32 @@
                     "required": ["lr", "min_lr", "weight_decay"]
                 }
             },
-            "required": ["epochs", "patience", "delta", "early_stop_mode", "early_stop_metric", "use_amp", "log_interval", "save_predictions_every", "prediction_samples", "prediction_score_threshold", "runs_dir", "checkpoint_path", "optimizer"]
+            "required": ["epochs", "patience", "delta", "early_stop_mode", "early_stop_metric", "use_amp", "log_interval", "save_predictions_every", "prediction_samples", "prediction_score_threshold", "runs_dir", "optimizer"]
         },
         "evaluation": {
             "type": "object",
             "properties": {
                 "iou_threshold": {"type": "number"},
-                "score_threshold": {"type": "number"}
+                "score_threshold": {"type": "number"},
+                "track_inference_time": {"type": "boolean"}
             },
-            "required": ["iou_threshold", "score_threshold"]
+            "required": ["iou_threshold", "score_threshold", "track_inference_time"]
+        },
+        "prediction": {
+            "type": "object",
+            "properties": {
+                "score_threshold": {"type": "number"},
+                "eval_use_score_threshold": {"type": "boolean"},
+                "model_weights": {
+                    "type": "object",
+                    "properties": {
+                        "yolov11": {"type": "string"},
+                        "retinanet": {"type": "string"},
+                        "faster_rcnn": {"type": "string"}
+                    }
+                }
+            },
+            "required": ["score_threshold", "eval_use_score_threshold", "model_weights"]
         },
         "models": {
             "type": "object",
@@ -119,7 +136,14 @@
                     "properties": {
                         "type": {"type": "string"},
                         "weights": {"type": ["string", "null"]},
-                        "trainable_backbone_layers": {"type": "integer"}
+                        "trainable_backbone_layers": {"type": "integer"},
+                        "transform": {
+                            "type": "object",
+                            "properties": {
+                                "min_size": {"type": ["integer", "array"]},
+                                "max_size": {"type": "integer"}
+                            }
+                        }
                     }
                 },
                 "faster_rcnn": {
@@ -127,12 +151,19 @@
                     "properties": {
                         "type": {"type": "string"},
                         "weights": {"type": ["string", "null"]},
-                        "trainable_backbone_layers": {"type": "integer"}
+                        "trainable_backbone_layers": {"type": "integer"},
+                        "transform": {
+                            "type": "object",
+                            "properties": {
+                                "min_size": {"type": ["integer", "array"]},
+                                "max_size": {"type": "integer"}
+                            }
+                        }
                     }
                 }
             },
             "required": ["yolov11", "retinanet", "faster_rcnn"]
         }
     },
-    "required": ["experiment", "data", "training", "evaluation", "models"]
+    "required": ["experiment", "data", "training", "evaluation", "prediction", "models"]
 }

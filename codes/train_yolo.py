@@ -45,26 +45,19 @@ def train_yolo(config, model, resume=False):
     train_cfg = config["training"]
     runs_dir = os.path.join(train_cfg["runs_dir"], "yolov11")
     os.makedirs(runs_dir, exist_ok=True)
-    latest_path = os.path.join(runs_dir, "latest_run.txt")
 
     if resume:
-        if not os.path.exists(latest_path):
-            raise SystemExit("Nessun run precedente trovato per yolov11.")
-        with open(latest_path, "r") as f:
-            run_dir = f.read().strip()
-        last_ckpt = os.path.join(run_dir, "weights", "last.pt")
-        best_ckpt = os.path.join(run_dir, "weights", "best.pt")
-        ckpt = last_ckpt if os.path.exists(last_ckpt) else best_ckpt
+        ckpt = train_cfg.get("resume_checkpoint_path")
+        if not ckpt:
+            raise SystemExit("Imposta training.resume_checkpoint_path per riprendere il training.")
         if not os.path.exists(ckpt):
-            raise SystemExit("Checkpoint YOLO non trovato per il resume.")
+            raise SystemExit(f"Checkpoint YOLO non trovato: {ckpt}")
         model.train(resume=ckpt)
         return
 
     timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
     run_name = f"{timestamp}_yolov11"
     run_dir = os.path.join(runs_dir, run_name)
-    with open(latest_path, "w") as f:
-        f.write(run_dir)
 
     model.train(
         data=yaml_path_abs,

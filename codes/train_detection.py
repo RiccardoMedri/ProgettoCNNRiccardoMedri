@@ -28,7 +28,6 @@ def train_detection(
 ):
     runs_dir = config["training"]["runs_dir"]
     os.makedirs(runs_dir, exist_ok=True)
-    os.makedirs(os.path.dirname(config["training"]["checkpoint_path"]), exist_ok=True)
 
     if run_dir is None:
         timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
@@ -100,12 +99,19 @@ def train_detection(
                     )
 
             train_loss = running_loss / max(len(train_loader), 1)
-            val_loss, val_metrics = evaluate_detection(
-                model, val_loader, device, metrics, label_offset=label_offset
+            val_loss, val_metrics, _ = evaluate_detection(
+                model,
+                val_loader,
+                device,
+                metrics,
+                label_offset=label_offset,
+                track_inference_time=config["evaluation"].get("track_inference_time", False),
+                compute_loss=True,
             )
 
             writer.add_scalar("Loss/train", train_loss, epoch)
-            writer.add_scalar("Loss/val", val_loss, epoch)
+            if val_loss is not None:
+                writer.add_scalar("Loss/val", val_loss, epoch)
             map_50 = float(val_metrics.get("map_50", 0.0))
             map_all = float(val_metrics.get("map", 0.0))
             precision = float(val_metrics.get("precision", 0.0))
@@ -126,24 +132,30 @@ def train_detection(
             sum_time += epoch_time
             current_time = get_current_time()
 
-            log_line = (
-                f"Epoca [{epoch + 1}/{epochs}]:\n"
-                f"- Train Loss: {train_loss:.4f}\n"
-                f"- Val Loss: {val_loss:.4f}\n"
-                f"- mAP@0.5: {map_50:.4f}\n"
-                f"- mAP@0.5:0.95: {map_all:.4f}\n"
-                f"- Precision: {precision:.4f}\n"
-                f"- Recall: {recall:.4f}\n"
-                f"- F1: {f1:.4f}\n"
-                f"[ {current_time} - Tempo impiegato: {epoch_time:.2f}s ]"
+            log_parts = [
+                f"Epoca [{epoch + 1}/{epochs}]:",
+                f"- Train Loss: {train_loss:.4f}",
+            ]
+            if val_loss is not None:
+                log_parts.append(f"- Val Loss: {val_loss:.4f}")
+            log_parts.extend(
+                [
+                    f"- mAP@0.5: {map_50:.4f}",
+                    f"- mAP@0.5:0.95: {map_all:.4f}",
+                    f"- Precision: {precision:.4f}",
+                    f"- Recall: {recall:.4f}",
+                    f"- F1: {f1:.4f}",
+                    f"[ {current_time} - Tempo impiegato: {epoch_time:.2f}s ]",
+                ]
             )
+            log_line = "\n".join(log_parts)
             print(log_line)
 
             write_results_row(
                 results_csv,
                 epoch + 1,
                 train_loss,
-                val_loss,
+                val_loss if val_loss is not None else "",
                 map_50,
                 map_all,
                 precision,
@@ -171,14 +183,21 @@ def train_detection(
                     max_samples=sample_count,
                     zero_based_labels=zero_based,
                     device=device,
+                    apply_unnorm=False,
                 )
 
             scheduler.step()
-            stop_metric = val_loss
+            stop_metric = None
             if config["training"]["early_stop_metric"] == "map_50":
                 stop_metric = float(val_metrics.get("map_50", 0.0))
             elif config["training"]["early_stop_metric"] == "map_50_95":
                 stop_metric = float(val_metrics.get("map", 0.0))
+            elif val_loss is not None:
+                stop_metric = val_loss
+            else:
+                raise SystemExit(
+                    "Val Loss non disponibile: imposta training.early_stop_metric su map_50 o map_50_95."
+                )
             early_stopping(stop_metric, model, optimizer, epoch, scheduler)
             if early_stopping.early_stop:
                 break
