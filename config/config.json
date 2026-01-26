@@ -1,6 +1,5 @@
 {
     "experiment": {
-        "name": "visdrone_det_baseline",
         "seed": 42,
         "device": "cuda"
     },
@@ -33,12 +32,7 @@
             "brightness": 0.2,
             "contrast": 0.2,
             "saturation": 0.2,
-            "hue": 0.08,
-            "random_scale": false,
-            "scale_min": 0.8,
-            "scale_max": 1.25,
-            "multi_scale": false,
-            "multi_scale_sizes": [832, 896, 960]
+            "hue": 0.08
         },
         "train": {
             "images_dir": "data/VisDrone2019-DET-train/images",
@@ -56,7 +50,7 @@
     },
     "training": {
         "epochs": 40,
-        "patience": 6,
+        "patience": 7,
         "delta": 0.0025,
         "early_stop_mode": "max",
         "early_stop_metric": "map_50_95",
@@ -72,7 +66,7 @@
         "warmup_epochs": 3,
         "warmup_start_factor": 0.1,
         "optimizer": {
-            "lr": 0.0003,
+            "lr": 0.0002,
             "min_lr": 0.000001,
             "weight_decay": 0.0001
         }
@@ -98,7 +92,7 @@
         },
         "retinanet": {
             "type": "retinanet",
-            "weights": "coco",
+            "weights": "C:/Users/Riccardo/Documents/Progetto Machine Learning/ProgettoConfronto/runs/retinanet/2026-01-25_22-14-30_retinanet/best_model.pth",
             "trainable_backbone_layers": 3,
             "transform": {
                 "min_size": [832, 896, 960],

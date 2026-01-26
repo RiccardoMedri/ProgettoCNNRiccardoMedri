@@ -119,9 +119,14 @@ def build_detector(model_cfg: Dict, num_classes: int):
         if is_path:
             model = retinanet_resnet50_fpn_v2(
                 weights=None,
-                weights_backbone=None,
+                weights_backbone=ResNet50_Weights.DEFAULT,
                 num_classes=effective_classes,
                 trainable_backbone_layers=trainable_backbone_layers,
+            )
+            num_anchors = model.head.classification_head.num_anchors
+            in_channels = model.backbone.out_channels
+            model.head.classification_head = RetinaNetClassificationHead(
+                in_channels, num_anchors, effective_classes
             )
             checkpoint = torch.load(weights_cfg, map_location="cpu")
             state_dict = checkpoint.get("model_state_dict", checkpoint)

@@ -38,9 +38,7 @@
                         "hue": {"type": "number"},
                         "random_scale": {"type": "boolean"},
                         "scale_min": {"type": "number"},
-                        "scale_max": {"type": "number"},
-                        "multi_scale": {"type": "boolean"},
-                        "multi_scale_sizes": {"type": "array"}
+                        "scale_max": {"type": "number"}
                     }
                 },
                 "train": {
