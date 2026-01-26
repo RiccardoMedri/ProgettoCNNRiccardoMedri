@@ -56,14 +56,29 @@ def convert_visdrone_to_yolo(images_dir, annotations_dir, labels_dir, class_map)
             out.write("\n".join(yolo_lines))
 
 
-def write_yolo_yaml(output_path: str, dataset_root: str, class_names: Dict[int, str]):
+def write_yolo_yaml(
+    output_path: str,
+    dataset_root: str | None,
+    class_names: Dict[int, str],
+    train_images: str | None = None,
+    val_images: str | None = None,
+    train_rel: str | None = None,
+    val_rel: str | None = None,
+):
     names = [class_names[idx] for idx in sorted(class_names.keys())]
-    content = (
-        f"path: {dataset_root}\n"
-        "train: train/images\n"
-        "val: val/images\n"
-        f"nc: {len(names)}\n"
-        f"names: {names}\n"
-    )
+    lines = []
+    if dataset_root:
+        lines.append(f"path: {dataset_root}")
+        if train_rel and val_rel:
+            train_line = f"train: {train_rel}"
+            val_line = f"val: {val_rel}"
+        else:
+            train_line = "train: train/images"
+            val_line = "val: val/images"
+    else:
+        train_line = f"train: {train_images}"
+        val_line = f"val: {val_images}"
+    lines.extend([train_line, val_line, f"nc: {len(names)}", f"names: {names}"])
+    content = "\n".join(lines) + "\n"
     with open(output_path, "w") as f:
         f.write(content)

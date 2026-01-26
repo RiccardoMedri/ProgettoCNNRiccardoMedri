@@ -9,20 +9,29 @@ from utils.class_names import class_names
 
 def train_yolo(config, model, resume=False):
     data_cfg = config["data"]["yolo"]
-    dataset_root = data_cfg["dataset_root"]
-    dataset_root_abs = os.path.abspath(dataset_root)
-    train_images = os.path.join(dataset_root, "train", "images")
-    train_ann = os.path.join(dataset_root, "train", "annotations")
-    train_labels = os.path.join(dataset_root, "train", "labels")
-    val_images = os.path.join(dataset_root, "val", "images")
-    val_ann = os.path.join(dataset_root, "val", "annotations")
-    val_labels = os.path.join(dataset_root, "val", "labels")
+    dataset_root = data_cfg.get("dataset_root")
+    train_images = config["data"]["train"]["images_dir"]
+    train_ann = config["data"]["train"]["annotations_dir"]
+    val_images = config["data"]["val"]["images_dir"]
+    val_ann = config["data"]["val"]["annotations_dir"]
+    train_root = os.path.dirname(train_images)
+    val_root = os.path.dirname(val_images)
+    train_labels = os.path.join(train_root, "labels")
+    val_labels = os.path.join(val_root, "labels")
+    dataset_root_abs = os.path.abspath(dataset_root) if dataset_root else None
+    if dataset_root_abs:
+        train_rel = os.path.relpath(train_images, dataset_root_abs)
+        val_rel = os.path.relpath(val_images, dataset_root_abs)
+    else:
+        train_rel = None
+        val_rel = None
 
     if data_cfg.get("auto_convert", True):
         convert_visdrone_to_yolo(train_images, train_ann, train_labels, config["data"]["class_map"])
         convert_visdrone_to_yolo(val_images, val_ann, val_labels, config["data"]["class_map"])
 
-    yaml_path = data_cfg.get("yaml_path", os.path.join(dataset_root, "visdrone.yaml"))
+    default_yaml = os.path.join(dataset_root, "visdrone.yaml") if dataset_root else "visdrone.yaml"
+    yaml_path = data_cfg.get("yaml_path", default_yaml)
     yaml_path_abs = os.path.abspath(yaml_path)
     rewrite_yaml = True
     if os.path.exists(yaml_path_abs):
@@ -30,16 +39,23 @@ def train_yolo(config, model, resume=False):
             for line in f:
                 if line.strip().startswith("path:"):
                     current = line.split(":", 1)[1].strip()
-                    rewrite_yaml = (
-                        not os.path.isabs(current)
-                        or os.path.abspath(current) != dataset_root_abs
-                    )
+                    if dataset_root_abs:
+                        rewrite_yaml = (
+                            not os.path.isabs(current)
+                            or os.path.abspath(current) != dataset_root_abs
+                        )
+                    else:
+                        rewrite_yaml = False
                     break
     if rewrite_yaml:
         write_yolo_yaml(
             yaml_path_abs,
             dataset_root_abs,
             {i + 1: name for i, name in enumerate(class_names)},
+            train_images=os.path.abspath(train_images),
+            val_images=os.path.abspath(val_images),
+            train_rel=train_rel,
+            val_rel=val_rel,
         )
 
     train_cfg = config["training"]

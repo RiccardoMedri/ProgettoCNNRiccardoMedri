@@ -43,14 +43,14 @@
             "annotations_dir": "data/VisDrone2019-DET-val/annotations"
         },
         "yolo": {
-            "dataset_root": "data/VisDrone2019-DET-YOLO",
+            "dataset_root": "data",
             "auto_convert": true,
-            "yaml_path": "data/VisDrone2019-DET-YOLO/visdrone.yaml"
+            "yaml_path": "data/visdrone.yaml"
         }
     },
     "training": {
-        "epochs": 40,
-        "patience": 7,
+        "epochs": 12,
+        "patience": 8,
         "delta": 0.0025,
         "early_stop_mode": "max",
         "early_stop_metric": "map_50_95",
@@ -66,7 +66,7 @@
         "warmup_epochs": 3,
         "warmup_start_factor": 0.1,
         "optimizer": {
-            "lr": 0.0002,
+            "lr": 0.00005,
             "min_lr": 0.000001,
             "weight_decay": 0.0001
         }
@@ -101,8 +101,8 @@
         },
         "faster_rcnn": {
             "type": "faster_rcnn",
-            "weights": "coco",
-            "trainable_backbone_layers": 3,
+            "weights": "runs/faster_rcnn/2026-01-26_15-17-39_faster_rcnn/best_model.pth",
+            "trainable_backbone_layers": 5,
             "transform": {
                 "min_size": 960,
                 "max_size": 960
