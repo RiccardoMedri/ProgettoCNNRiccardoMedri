@@ -1,9 +1,6 @@
 import numpy as np
 import torch
 
-from utils.alert import alert
-from utils.beep import beep
-
 
 class EarlyStopping:
     def __init__(self, patience=5, delta=0.0, mode="min", checkpoint_path="models/best_model.pth"):
@@ -30,7 +27,6 @@ class EarlyStopping:
             if self.counter >= self.patience:
                 self.early_stop = True
                 print("Early stopping attivato: Fine allenamento\n")
-                alert()
         else:
             self.best_score = score
             self.save_checkpoint(metric_value, model, optimizer, epoch, scheduler)
@@ -40,7 +36,6 @@ class EarlyStopping:
         print(
             f"Checkpoint salvato. Miglioramento metrica ({self.best_value:.4f} -> {metric_value:.4f}).\n"
         )
-        beep()
         checkpoint = {
             "epoch": epoch,
             "model_state_dict": model.state_dict(),
