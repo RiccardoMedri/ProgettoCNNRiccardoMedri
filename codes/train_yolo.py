@@ -1,12 +1,11 @@
 import os
 import time
-
 import torch
-
 from data.visdrone_to_yolo import convert_visdrone_to_yolo, write_yolo_yaml
 from utils.class_names import class_names
 
 
+#Training YOLOv11 con conversione dataset e gestione YAML
 def train_yolo(config, model, resume=False):
     data_cfg = config["data"]["yolo"]
     dataset_root = data_cfg.get("dataset_root")
@@ -26,10 +25,12 @@ def train_yolo(config, model, resume=False):
         train_rel = None
         val_rel = None
 
+    #Conversione automatica VisDrone in formato YOLO se richiesta
     if data_cfg.get("auto_convert", True):
         convert_visdrone_to_yolo(train_images, train_ann, train_labels, config["data"]["class_map"])
         convert_visdrone_to_yolo(val_images, val_ann, val_labels, config["data"]["class_map"])
 
+    #YAML dataset riscrive il path assoluto per evitare override di Ultralytics
     default_yaml = os.path.join(dataset_root, "visdrone.yaml") if dataset_root else "visdrone.yaml"
     yaml_path = data_cfg.get("yaml_path", default_yaml)
     yaml_path_abs = os.path.abspath(yaml_path)
@@ -62,6 +63,7 @@ def train_yolo(config, model, resume=False):
     runs_dir = os.path.join(train_cfg["runs_dir"], "yolov11")
     os.makedirs(runs_dir, exist_ok=True)
 
+    #Riprende da un checkpoint se richiesto
     if resume:
         ckpt = train_cfg.get("resume_checkpoint_path")
         if not ckpt:
@@ -73,8 +75,8 @@ def train_yolo(config, model, resume=False):
 
     timestamp = time.strftime("%Y-%m-%d_%H-%M-%S")
     run_name = f"{timestamp}_yolov11"
-    run_dir = os.path.join(runs_dir, run_name)
 
+    #Avvia training con parametri da config
     model.train(
         data=yaml_path_abs,
         epochs=train_cfg["epochs"],

@@ -2,7 +2,14 @@ import time
 import torch
 from torch import nn
 
+#Nei modelli di detection di Torchvision la forward funziona:
+# - model.eval() + model(images) → ritorna solo prediction
+# - model.train() + model(images, targets) → ritorna un dizionare di loss
+#Se tenessi il modello solo in eval(), non potrei calcolare la loss di validazione, perché il modello non accetterebbe e non produrrebbe le losses
 
+
+#Scansiona tutti i moduli del modello ed individua quelli di tipo BatchNorm e Dropout
+#Salvo lo stato in una lista di tuple e mette il modulo in eval
 def _freeze_bn_dropout(model):
     frozen = []
     for module in model.modules():
@@ -12,11 +19,8 @@ def _freeze_bn_dropout(model):
     return frozen
 
 
-def _restore_training_state(frozen):
-    for module, was_training in frozen:
-        module.train(was_training)
-
-
+#Ripristino lo stato train/eval (in base al flag) dei moduli congelati nella funzione _freeze_bn_dropout
+#Valuto il modello su val_loader con metriche, loss opzionale e calcolo del tempo di inferenza
 def evaluate_detection(
     model,
     val_loader,
@@ -45,7 +49,6 @@ def evaluate_detection(
                 frozen = _freeze_bn_dropout(model)
                 loss_dict = model(images, targets)
                 total_loss += sum(loss_dict.values()).item()
-                _restore_training_state(frozen)
                 model.eval()
 
             if track_inference_time:
