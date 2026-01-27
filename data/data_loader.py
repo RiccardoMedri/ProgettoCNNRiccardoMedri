@@ -7,9 +7,9 @@ from data.visdrone_dataset import VisDroneDataset, collate_fn
 def load_data(config):
     train_cfg = config["data"]["train"]
     val_cfg = config["data"]["val"]
-
     valid_categories = config["data"].get("valid_categories", None)
     
+    #Dataset di training con augmentation
     train_dataset = VisDroneDataset(
         images_dir=train_cfg["images_dir"],
         annotations_dir=train_cfg["annotations_dir"],
@@ -18,6 +18,7 @@ def load_data(config):
         valid_categories=valid_categories,
     )
 
+    #Dataset di validazione senza augmentation
     val_dataset = VisDroneDataset(
         images_dir=val_cfg["images_dir"],
         annotations_dir=val_cfg["annotations_dir"],
@@ -26,6 +27,7 @@ def load_data(config):
         valid_categories=valid_categories,
     )
 
+    #DataLoader con collate per detection (liste di immagini/target)
     train_loader = DataLoader(
         train_dataset,
         batch_size=config["data"]["batch_size"],

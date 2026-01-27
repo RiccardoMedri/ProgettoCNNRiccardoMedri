@@ -1,32 +1,25 @@
 import os
 from typing import Dict, List, Tuple
-
 import torch
 from PIL import Image
 from torchvision import tv_tensors
 
 
+#Dataset VisDrone con parsing annotazioni e target per detection
 class VisDroneDataset(torch.utils.data.Dataset):
-    def __init__(
-        self,
-        images_dir: str,
-        annotations_dir: str,
-        transforms=None,
-        class_map=None,
-        valid_categories=None,
-    ):
+
+    def __init__(self, images_dir: str, annotations_dir: str, transforms=None, class_map=None, valid_categories=None):
         self.images_dir = images_dir
         self.annotations_dir = annotations_dir
         self.transforms = transforms
         self.class_map = class_map or {}
         self.valid_categories = set(valid_categories) if valid_categories else None
-        self.image_files = sorted(
-            [f for f in os.listdir(images_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))]
-        )
+        self.image_files = sorted([f for f in os.listdir(images_dir) if f.lower().endswith((".jpg", ".jpeg", ".png"))])
 
     def __len__(self):
         return len(self.image_files)
 
+    #Legge le annotazioni VisDrone, filtra righe invalide e ritorna box XYXY e label mappate
     def _parse_annotation(self, ann_path: str) -> Tuple[List[List[float]], List[int]]:
         boxes = []
         labels = []
@@ -34,6 +27,7 @@ class VisDroneDataset(torch.utils.data.Dataset):
         if not os.path.exists(ann_path):
             return boxes, labels
 
+        #It reads the file line by line; each line is split by commas
         with open(ann_path, "r") as f:
             for line in f:
                 parts = line.strip().split(",")
@@ -53,6 +47,8 @@ class VisDroneDataset(torch.utils.data.Dataset):
                 h = float(h)
                 if w <= 1 or h <= 1:
                     continue
+
+                #For valid boxes it converts by adding width/height
                 boxes.append([x, y, x + w, y + h])
                 labels.append(self.class_map.get(category, category))
 

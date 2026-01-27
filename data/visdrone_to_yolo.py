@@ -3,7 +3,7 @@ from typing import Dict
 
 from PIL import Image
 
-
+#Conversione VisDrone a YOLO e generazione YAML dataset
 def convert_visdrone_to_yolo(images_dir, annotations_dir, labels_dir, class_map):
     os.makedirs(labels_dir, exist_ok=True)
 
@@ -55,7 +55,7 @@ def convert_visdrone_to_yolo(images_dir, annotations_dir, labels_dir, class_map)
         with open(label_path, "w") as out:
             out.write("\n".join(yolo_lines))
 
-
+#Crea il file yaml che punta al dataset in formato YOLO
 def write_yolo_yaml(
     output_path: str,
     dataset_root: str | None,

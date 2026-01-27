@@ -1,7 +1,7 @@
 import torch
 from torchvision.transforms import v2 as T
 
-
+#Definisce pipeline di trasformazioni e augmentation per detection
 def build_transforms(config, train=True, use_model_internal_preprocessing=False):
     size = config["data"]["image_size"]
     mean = config["data"]["normalize"]["mean"]
@@ -21,6 +21,7 @@ def build_transforms(config, train=True, use_model_internal_preprocessing=False)
                     hue=aug.get("hue", 0.05),
                 )
             )
+        #Effettua la resize solo se non si utilizza il preprocessing interno del modello    
         if not use_model_internal_preprocessing:
             transforms.append(T.Resize((size, size), antialias=True))
     else:
