@@ -4,7 +4,7 @@ import os
 import time
 import torch
 from pathlib import Path
-from PIL import Image, ImageDraw
+from PIL import Image
 from torchvision import tv_tensors
 from torch.utils.data import DataLoader
 from codes.evaluate_detection import evaluate_detection
@@ -14,6 +14,9 @@ from data.visdrone_dataset import VisDroneDataset, collate_fn
 from models.detectors import build_detector, build_yolo
 from utils.checkpoints import load_checkpoint
 from utils.class_names import class_names
+from utils.config import load_config
+from utils.visdrone_io import load_visdrone_annotations
+from utils.visualization import draw_detections, draw_targets, side_by_side, tensor_to_pil
 
 
 def parse_args():
@@ -27,88 +30,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_config(path):
-    with open(path, "r") as f:
-        config = json.load(f)
-    class_map = config["data"].get("class_map", {})
-    config["data"]["class_map"] = {int(k): int(v) for k, v in class_map.items()}
-    return config
-
-
-def draw_boxes(
-    image,
-    outputs,
-    score_threshold,
-    zero_based_labels=False,
-    color="red",
-    show_scores=True,
-):
-    draw = ImageDraw.Draw(image)
-    boxes = outputs["boxes"].cpu().numpy()
-    scores = outputs.get("scores")
-    scores = scores.cpu().numpy() if scores is not None else None
-    labels = outputs["labels"].cpu().numpy()
-
-    for idx, (box, label) in enumerate(zip(boxes, labels)):
-        score = scores[idx] if scores is not None else None
-        if score is not None and score < score_threshold:
-            continue
-        x1, y1, x2, y2 = box.tolist()
-        draw.rectangle([x1, y1, x2, y2], outline=color, width=2)
-        if zero_based_labels:
-            class_label = class_names[label] if 0 <= label < len(class_names) else f"id-{label}"
-        else:
-            class_label = class_names[label - 1] if 0 < label <= len(class_names) else f"id-{label}"
-        if show_scores and score is not None:
-            text = f"{class_label} {score:.2f}"
-        else:
-            text = f"{class_label}"
-        draw.text((x1, y1), text, fill=color)
-
-    return image
-
-
-def load_visdrone_annotations(ann_path, class_map):
-    boxes = []
-    labels = []
-    if not os.path.exists(ann_path):
-        return boxes, labels
-
-    with open(ann_path, "r") as f:
-        for line in f:
-            parts = line.strip().split(",")
-            if len(parts) < 6:
-                continue
-            x, y, w, h, score, category = parts[:6]
-            category = int(category)
-            if category <= 0 or category not in class_map:
-                continue
-            mapped = class_map[category]
-            x = float(x)
-            y = float(y)
-            w = float(w)
-            h = float(h)
-            boxes.append([x, y, x + w, y + h])
-            labels.append(mapped)
-
-    return boxes, labels
-
-
-def prepare_image(image, target, transforms, normalize_cfg, apply_unnorm):
-    resized_image, resized_target = transforms(image, target)
-    resized_pil = tensor_to_pil(resized_image, normalize_cfg, apply_unnorm=apply_unnorm)
-    return resized_image, resized_target, resized_pil
-
-
-def side_by_side(left, right):
-    width = left.width + right.width
-    height = max(left.height, right.height)
-    canvas = Image.new("RGB", (width, height), color=(0, 0, 0))
-    canvas.paste(left, (0, 0))
-    canvas.paste(right, (left.width, 0))
-    return canvas
-
-
+#Esegue inferenza torchvision su una singola immagine e salva overlay GT vs Pred affiancati
 def run_on_image(
     image_path,
     ann_path,
@@ -131,8 +53,9 @@ def run_on_image(
     target["boxes"] = tv_tensors.BoundingBoxes(
         target["boxes"], format="XYXY", canvas_size=(height, width)
     )
-    resized_image, resized_target, resized_pil = prepare_image(
-        image, target, transforms, config["data"]["normalize"], apply_unnorm
+    resized_image, resized_target = transforms(image, target)
+    resized_pil = tensor_to_pil(
+        resized_image, config["data"]["normalize"], apply_unnorm=apply_unnorm
     )
 
     with torch.no_grad():
@@ -140,26 +63,25 @@ def run_on_image(
 
     gt_overlay = resized_pil.copy()
     if resized_target["boxes"].numel() > 0:
-        gt_overlay = draw_boxes(
+        gt_overlay = draw_targets(
             gt_overlay,
             resized_target,
-            score_threshold=0.0,
+            class_names,
             zero_based_labels=False,
             color="green",
-            show_scores=False,
         )
-    pred_overlay = draw_boxes(
+    pred_overlay = draw_detections(
         resized_pil.copy(),
         outputs,
+        class_names,
         score_threshold,
         zero_based_labels=zero_based,
         color="red",
-        show_scores=True,
     )
 
     return side_by_side(gt_overlay, pred_overlay)
 
-
+#Esegue inference yolo su una singola immagine e salva overlay GT vs Pred affiancati
 def run_on_image_yolo(image_path, ann_path, model, class_map, score_threshold):
     image = Image.open(image_path).convert("RGB")
     boxes, labels = load_visdrone_annotations(ann_path, class_map)
@@ -169,13 +91,12 @@ def run_on_image_yolo(image_path, ann_path, model, class_map, score_threshold):
             "boxes": torch.tensor(boxes, dtype=torch.float32),
             "labels": torch.tensor(labels, dtype=torch.int64),
         }
-        gt_overlay = draw_boxes(
+        gt_overlay = draw_targets(
             gt_overlay,
             target,
-            score_threshold=0.0,
+            class_names,
             zero_based_labels=False,
             color="green",
-            show_scores=False,
         )
 
     results = model.predict(
@@ -196,18 +117,46 @@ def run_on_image_yolo(image_path, ann_path, model, class_map, score_threshold):
                 "scores": torch.tensor(scores, dtype=torch.float32) if scores is not None else None,
                 "labels": torch.tensor(labels_pred, dtype=torch.int64),
             }
-            pred_overlay = draw_boxes(
+            pred_overlay = draw_detections(
                 pred_overlay,
                 outputs,
+                class_names,
                 score_threshold=score_threshold,
                 zero_based_labels=True,
                 color="red",
-                show_scores=True,
             )
 
     return side_by_side(gt_overlay, pred_overlay)
 
+#Esegue inferenza per singola immagine, scegliendo la pipeline corretta in base al modello
+def render_gt_vs_pred(
+    image_path,
+    ann_path,
+    model,
+    transforms,
+    config,
+    device,
+    score_threshold,
+    zero_based,
+    apply_unnorm,
+    class_map,
+    model_name,
+):
+    if model_name == "yolov11":
+        return run_on_image_yolo(image_path, ann_path, model, class_map, score_threshold)
+    return run_on_image(
+        image_path,
+        ann_path,
+        model,
+        transforms,
+        config,
+        device,
+        score_threshold,
+        zero_based,
+        apply_unnorm=apply_unnorm,
+    )
 
+#un detector TorchVision su un dataset e misura il tempo medio di inferenza
 def evaluate_detector_dataset(
     model,
     dataset,
@@ -237,17 +186,17 @@ def evaluate_detector_dataset(
     )
     return val_loss, metric_values, avg_pred_time
 
-
+#Valuta YOLO su dataset iterando immagini una ad una e aggiornando le metriche in formato compatibile
 def evaluate_yolo_dataset(
-    model, dataset, device, class_map, score_threshold, eval_use_score_threshold
+    model, dataset, score_threshold, eval_use_score_threshold
 ):
     metrics = DetectionMetrics(score_threshold=score_threshold)
     metrics.reset()
     total_images = 0
     total_pred_time = 0.0
 
-    for image, target in dataset:
-        image_path = dataset.image_files[total_images]
+    for idx, (_image, target) in enumerate(dataset):
+        image_path = dataset.image_files[idx]
         image_path = os.path.join(dataset.images_dir, image_path)
         start = time.perf_counter()
         conf = score_threshold if eval_use_score_threshold else 0.0
@@ -330,22 +279,19 @@ def main():
     if args.image:
         image_path = Path(args.image)
         ann_path = image_path.with_suffix(".txt")
-        if args.model == "yolov11":
-            output_image = run_on_image_yolo(
-                image_path, ann_path, model, class_map, score_threshold
-            )
-        else:
-            output_image = run_on_image(
-                image_path,
-                ann_path,
-                model,
-                transforms,
-                config,
-                device,
-                score_threshold,
-                zero_based,
-                apply_unnorm=not use_model_internal_preprocessing,
-            )
+        output_image = render_gt_vs_pred(
+            image_path,
+            ann_path,
+            model,
+            transforms,
+            config,
+            device,
+            score_threshold,
+            zero_based,
+            apply_unnorm=not use_model_internal_preprocessing,
+            class_map=class_map,
+            model_name=args.model,
+        )
         output_path = image_path.with_suffix("").as_posix() + "_gt_pred.png"
         output_image.save(output_path)
         print(f"Output salvato in {output_path}")
@@ -370,22 +316,19 @@ def main():
     )
     for image_path in image_files:
         ann_path = annotations_dir / f"{image_path.stem}.txt"
-        if args.model == "yolov11":
-            output_image = run_on_image_yolo(
-                image_path, ann_path, model, class_map, score_threshold
-            )
-        else:
-            output_image = run_on_image(
-                image_path,
-                ann_path,
-                model,
-                transforms,
-                config,
-                device,
-                score_threshold,
-                zero_based,
-                apply_unnorm=not use_model_internal_preprocessing,
-            )
+        output_image = render_gt_vs_pred(
+            image_path,
+            ann_path,
+            model,
+            transforms,
+            config,
+            device,
+            score_threshold,
+            zero_based,
+            apply_unnorm=not use_model_internal_preprocessing,
+            class_map=class_map,
+            model_name=args.model,
+        )
         output_path = side_by_side_dir / f"{image_path.stem}_gt_pred.png"
         output_image.save(output_path)
 
@@ -399,15 +342,8 @@ def main():
             valid_categories=config["data"].get("valid_categories"),
         )
         metric_values, avg_pred_time = evaluate_yolo_dataset(
-            model, dataset, device, class_map, score_threshold, eval_use_score_threshold
+            model, dataset, score_threshold, eval_use_score_threshold
         )
-        metrics_out = {
-            "map_50": float(metric_values.get("map_50", 0.0)),
-            "map_50_95": float(metric_values.get("map", 0.0)),
-            "precision": float(metric_values.get("precision", 0.0)),
-            "recall": float(metric_values.get("recall", 0.0)),
-            "avg_inference_time_sec": avg_pred_time,
-        }
     else:
         dataset = VisDroneDataset(
             str(images_dir),
@@ -431,26 +367,16 @@ def main():
             score_threshold=score_threshold,
             track_inference_time=True,
         )
-        metrics_out = {
-            "map_50": float(metric_values.get("map_50", 0.0)),
-            "map_50_95": float(metric_values.get("map", 0.0)),
-            "precision": float(metric_values.get("precision", 0.0)),
-            "recall": float(metric_values.get("recall", 0.0)),
-            "avg_inference_time_sec": avg_pred_time,
-        }
+    metrics_out = {
+        "map_50": float(metric_values.get("map_50", 0.0)),
+        "map_50_95": float(metric_values.get("map", 0.0)),
+        "precision": float(metric_values.get("precision", 0.0)),
+        "recall": float(metric_values.get("recall", 0.0)),
+        "avg_inference_time_sec": avg_pred_time,
+    }
     with open(metrics_path, "w") as f:
         json.dump(metrics_out, f, indent=2)
     print(f"Output salvato in {predictions_dir}")
-
-
-def tensor_to_pil(tensor_image, normalize_cfg, apply_unnorm=True):
-    image = tensor_image.cpu()
-    if apply_unnorm:
-        mean = torch.tensor(normalize_cfg["mean"]).view(3, 1, 1)
-        std = torch.tensor(normalize_cfg["std"]).view(3, 1, 1)
-        image = image * std + mean
-    image = image.clamp(0, 1).mul(255).byte().permute(1, 2, 0).numpy()
-    return Image.fromarray(image)
 
 
 if __name__ == "__main__":

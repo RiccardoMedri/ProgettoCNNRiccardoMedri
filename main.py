@@ -1,5 +1,4 @@
 import argparse
-import json
 import os
 import time
 import torch
@@ -9,6 +8,7 @@ from data.data_loader import load_data
 from models.detectors import build_detector, build_yolo
 from utils.checkpoints import load_checkpoint
 from utils.clear_console import clear_console
+from utils.config import load_config
 from utils.time_manager import get_current_time
 
 
@@ -18,15 +18,6 @@ def parse_args():
     parser.add_argument("--model", choices=["yolov11", "retinanet", "faster_rcnn"])
     parser.add_argument("--resume", action="store_true", help="Resume from checkpoint if available")
     return parser.parse_args()
-
-#Carica il JSON di configurazione e normalizza la mappa classi in chiavi/valori interi
-def load_config(path):
-    with open(path, "r") as f:
-        config = json.load(f)
-
-    class_map = config["data"].get("class_map", {})
-    config["data"]["class_map"] = {int(k): int(v) for k, v in class_map.items()}
-    return config
 
 #Entry-point inizializza ambiente (seed, device) e avvia il training per il modello scelto
 def main():

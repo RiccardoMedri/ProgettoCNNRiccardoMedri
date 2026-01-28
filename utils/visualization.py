@@ -14,14 +14,26 @@ def tensor_to_pil(tensor_image, normalize_cfg=None, apply_unnorm=True):
     return Image.fromarray(image)
 
 
-def draw_detections(image, outputs, class_names, score_threshold, zero_based_labels=False, color="red"):
+def draw_detections(
+    image,
+    outputs,
+    class_names,
+    score_threshold,
+    zero_based_labels=False,
+    color="red",
+    show_scores=True,
+):
     draw = ImageDraw.Draw(image)
-    boxes = outputs.get("boxes", torch.zeros((0, 4))).cpu().numpy()
-    scores = outputs.get("scores", torch.zeros((0,))).cpu().numpy()
-    labels = outputs.get("labels", torch.zeros((0,))).cpu().numpy()
+    boxes_t = outputs.get("boxes", torch.zeros((0, 4)))
+    labels_t = outputs.get("labels", torch.zeros((0,)))
+    scores_t = outputs.get("scores")
+    boxes = boxes_t.cpu().numpy()
+    labels = labels_t.cpu().numpy()
+    scores = scores_t.cpu().numpy() if scores_t is not None else None
 
-    for box, score, label in zip(boxes, scores, labels):
-        if score < score_threshold:
+    for idx, (box, label) in enumerate(zip(boxes, labels)):
+        score = scores[idx] if scores is not None else None
+        if score is not None and score < score_threshold:
             continue
         x1, y1, x2, y2 = box.tolist()
         draw.rectangle([x1, y1, x2, y2], outline=color, width=2)
@@ -29,7 +41,11 @@ def draw_detections(image, outputs, class_names, score_threshold, zero_based_lab
             class_label = class_names[label] if 0 <= label < len(class_names) else f"id-{label}"
         else:
             class_label = class_names[label - 1] if 0 < label <= len(class_names) else f"id-{label}"
-        draw.text((x1, y1), f"{class_label} {score:.2f}", fill=color)
+        if show_scores and score is not None:
+            text = f"{class_label} {score:.2f}"
+        else:
+            text = class_label
+        draw.text((x1, y1), text, fill=color)
     return image
 
 
@@ -79,3 +95,12 @@ def save_prediction_samples(
         image = draw_targets(image, target, class_names, zero_based_labels, color="green")
         image = draw_detections(image, output, class_names, score_threshold, zero_based_labels, color="red")
         image.save(os.path.join(output_dir, f"sample_{idx + 1}.png"))
+
+
+def side_by_side(left, right):
+    width = left.width + right.width
+    height = max(left.height, right.height)
+    canvas = Image.new("RGB", (width, height), color=(0, 0, 0))
+    canvas.paste(left, (0, 0))
+    canvas.paste(right, (left.width, 0))
+    return canvas

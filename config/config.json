@@ -69,9 +69,9 @@
         "score_threshold": 0.4,
         "eval_use_score_threshold": true,
         "model_weights": {
-            "yolov11": "C:/Users/Riccardo/Documents/Progetto Machine Learning/ProgettoConfronto/runs/yolov11/2026-01-24_15-41-38_yolov11/weights/best.pt",
-            "retinanet": "coco",
-            "faster_rcnn": "C:/Users/Riccardo/Documents/Progetto Machine Learning/ProgettoConfronto/runs/faster_rcnn/2026-01-23_19-59-37_frcnn_high_lr/best_model.pth"
+            "yolov11": "best_yolo.pt",
+            "retinanet": "./best_retinanet.pth",
+            "faster_rcnn": "best_frcnn.pth"
         }
     },
     "models": {
