@@ -1,7 +1,7 @@
 import torch
 from torchvision.transforms import v2 as T
 
-#Definisce pipeline di trasformazioni e augmentation per detection
+#Definisce pipeline di trasformazioni e augmentation per la detection
 def build_transforms(config, train=True, use_model_internal_preprocessing=False):
     size = config["data"]["image_size"]
     mean = config["data"]["normalize"]["mean"]

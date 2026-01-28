@@ -2,9 +2,7 @@ import argparse
 import json
 import os
 import time
-
 import torch
-
 from codes.train_detection import train_detection
 from codes.train_yolo import train_yolo
 from data.data_loader import load_data
@@ -21,7 +19,7 @@ def parse_args():
     parser.add_argument("--resume", action="store_true", help="Resume from checkpoint if available")
     return parser.parse_args()
 
-
+#Carica il JSON di configurazione e normalizza la mappa classi in chiavi/valori interi
 def load_config(path):
     with open(path, "r") as f:
         config = json.load(f)
@@ -30,7 +28,7 @@ def load_config(path):
     config["data"]["class_map"] = {int(k): int(v) for k, v in class_map.items()}
     return config
 
-
+#Entry-point inizializza ambiente (seed, device) e avvia il training per il modello scelto
 def main():
     args = parse_args()
     config = load_config(args.config)
@@ -47,7 +45,7 @@ def main():
 
     run_single_model(args.model, config, args.resume)
 
-
+#Esegue una singola run, YOLO segue pipeline dedicata, gli altri usano loader + training TorchVision
 def run_single_model(model_name, config, resume):
     if model_name == "yolov11":
         yolo_model = build_yolo(config["models"]["yolov11"])
@@ -101,7 +99,7 @@ def run_single_model(model_name, config, resume):
         run_dir=run_dir,
     )
 
-
+#Costruisce uno scheduler LR con warmup lineare seguito da CosineAnnealing (se warmup > 0)
 def build_scheduler(optimizer, config):
     training_cfg = config["training"]
     optimizer_cfg = training_cfg["optimizer"]
@@ -126,7 +124,6 @@ def build_scheduler(optimizer, config):
     return torch.optim.lr_scheduler.SequentialLR(
         optimizer, schedulers=[warmup, cosine], milestones=[warmup_epochs]
     )
-
 
 if __name__ == "__main__":
     main()

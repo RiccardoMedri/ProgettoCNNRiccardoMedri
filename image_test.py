@@ -2,13 +2,11 @@ import argparse
 import json
 import os
 import time
-from pathlib import Path
-
 import torch
+from pathlib import Path
 from PIL import Image, ImageDraw
 from torchvision import tv_tensors
 from torch.utils.data import DataLoader
-
 from codes.evaluate_detection import evaluate_detection
 from codes.metrics import DetectionMetrics
 from data.detection_transforms import build_transforms
@@ -25,10 +23,7 @@ def parse_args():
     parser.add_argument("--score-threshold", type=float, default=None)
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--image", help="Path a una singola immagine")
-    group.add_argument(
-        "--dataset",
-        help="Path a un dataset dentro ./Test/<nome> con images/annotations/predictions",
-    )
+    group.add_argument("--dataset", help="Path a un dataset dentro ./Test/<nome> con images/annotations/predictions")
     return parser.parse_args()
 
 

@@ -1,5 +1,6 @@
 import os
 from typing import Dict
+import torch
 from torchvision.models.detection import (
     retinanet_resnet50_fpn_v2,
     fasterrcnn_resnet50_fpn_v2,
@@ -9,9 +10,14 @@ from torchvision.models.detection import (
 from torchvision.models.detection.retinanet import RetinaNetClassificationHead
 from torchvision.models import ResNet50_Weights
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
-import torch
 
 
+#Funzioni di factory per istanziare modelli di detection
+#La modalità "mista" di sostituzione delle head è dettata da:
+# - Procedura standard ed esplicita: scelta per evitare ambiguità e per vincoli di shape
+# - Procedura implicita: quando non carico pesi incompatibili (con head shape diversa)
+
+#Specifica le configurazioni di resize al modello
 def _apply_transform_cfg(model, model_cfg: Dict):
     transform_cfg = model_cfg.get("transform")
     if not transform_cfg:
@@ -26,7 +32,7 @@ def _apply_transform_cfg(model, model_cfg: Dict):
     if max_size is not None:
         model.transform.max_size = int(max_size)
 
-
+#Costruisce un modello di detection in base alla configurazione
 def build_detector(model_cfg: Dict, num_classes: int):
     model_type = model_cfg["type"].lower()
 
@@ -43,6 +49,7 @@ def build_detector(model_cfg: Dict, num_classes: int):
 
         trainable_backbone_layers = model_cfg.get("trainable_backbone_layers", 3)
 
+        #La backbone è sempre ResNet50
         if is_none:
             model = fasterrcnn_resnet50_fpn_v2(
                 weights=None,
@@ -62,9 +69,20 @@ def build_detector(model_cfg: Dict, num_classes: int):
                 weights_backbone=ResNet50_Weights.DEFAULT,
                 trainable_backbone_layers=trainable_backbone_layers,
             )
+
+            #Sostituisco la head di classificazione di Faster R-CNN con
+            # - stessa dimensione del vettore di features
+            # - numero di classi corretto per il mio dataset
+
+            #Salvo la dimensione del vettore di feature originale
             in_features = model.roi_heads.box_predictor.cls_score.in_features
+
+            #Salvo il numero di classi corretto (+1 per lo sfondo)
             effective_classes = num_classes + 1
+
+            #Creo una nuova head di classificazione
             model.roi_heads.box_predictor = FastRCNNPredictor(in_features, effective_classes)
+            
             checkpoint = torch.load(weights_cfg, map_location="cpu")
             state_dict = checkpoint.get("model_state_dict", checkpoint)
             model.load_state_dict(state_dict, strict=False)
@@ -98,10 +116,7 @@ def build_detector(model_cfg: Dict, num_classes: int):
                 num_classes=effective_classes,
                 trainable_backbone_layers=trainable_backbone_layers,
             )
-            _apply_transform_cfg(model, model_cfg)
-            return model
-
-        if is_coco:
+        elif is_coco:
             weights = RetinaNet_ResNet50_FPN_V2_Weights.DEFAULT
             model = retinanet_resnet50_fpn_v2(
                 weights=weights,
@@ -113,10 +128,7 @@ def build_detector(model_cfg: Dict, num_classes: int):
             model.head.classification_head = RetinaNetClassificationHead(
                 in_channels, num_anchors, effective_classes
             )
-            _apply_transform_cfg(model, model_cfg)
-            return model
-
-        if is_path:
+        else:
             model = retinanet_resnet50_fpn_v2(
                 weights=None,
                 weights_backbone=ResNet50_Weights.DEFAULT,
@@ -131,8 +143,8 @@ def build_detector(model_cfg: Dict, num_classes: int):
             checkpoint = torch.load(weights_cfg, map_location="cpu")
             state_dict = checkpoint.get("model_state_dict", checkpoint)
             model.load_state_dict(state_dict, strict=True)
-            _apply_transform_cfg(model, model_cfg)
-            return model
+        _apply_transform_cfg(model, model_cfg)
+        return model
 
     raise ValueError(f"Tipo modello non supportato: {model_type}")
 
