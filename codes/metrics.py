@@ -70,7 +70,7 @@ class DetectionMetrics:
         tp = 0
 
         #Per ogni predizione trova il target con IoU massimo
-        #Se supera la soglia e non e' gia' stato abbinato, e' un vero positivo
+        #Se supera la soglia e non è gia' stato abbinato, è un vero positivo
         #Aggiorna TP, FP, FN di conseguenza
         for pred_idx in range(ious.shape[0]):
             best_iou, best_target = torch.max(ious[pred_idx], dim=0)

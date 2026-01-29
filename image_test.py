@@ -23,6 +23,8 @@ def parse_args():
     parser.add_argument("--config", default="config/config.json")
     parser.add_argument("--model", required=True, choices=["retinanet", "faster_rcnn", "yolov11"])
     parser.add_argument("--score-threshold", type=float, default=None)
+    parser.add_argument("--skip-metrics", action="store_true", help="Salta il calcolo delle metriche")
+    parser.add_argument("--skip-predict", action="store_true", help="Salta la generazione delle predizioni")
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--image", help="Path a una singola immagine")
     group.add_argument("--dataset", help="Path a un dataset dentro ./Test/<nome> con images/annotations/predictions")
@@ -304,6 +306,9 @@ def main():
         return
 
     dataset_dir = Path(args.dataset)
+    if args.skip_metrics and args.skip_predict:
+        print("Nessuna operazione: --skip-metrics e --skip-predict sono entrambi attivi.")
+        return
     images_dir = dataset_dir / "images"
     annotations_dir = dataset_dir / "annotations"
     if not annotations_dir.exists():
@@ -314,74 +319,76 @@ def main():
     run_name = f"predict_{args.model}_{timestamp}"
     predictions_dir = base_predictions_dir / run_name
     predictions_dir.mkdir(parents=True, exist_ok=True)
-    side_by_side_dir = predictions_dir / "side_by_side"
-    side_by_side_dir.mkdir(parents=True, exist_ok=True)
+    if not args.skip_predict:
+        side_by_side_dir = predictions_dir / "side_by_side"
+        side_by_side_dir.mkdir(parents=True, exist_ok=True)
 
-    image_files = sorted(
-        p for p in images_dir.iterdir() if p.suffix.lower() in {".jpg", ".jpeg", ".png"}
-    )
-    for image_path in image_files:
-        ann_path = annotations_dir / f"{image_path.stem}.txt"
-        output_image = render_gt_vs_pred(
-            image_path,
-            ann_path,
-            model,
-            transforms,
-            config,
-            device,
-            score_threshold,
-            zero_based,
-            apply_unnorm=not use_model_internal_preprocessing,
-            class_map=class_map,
-            model_name=args.model,
+        image_files = sorted(
+            p for p in images_dir.iterdir() if p.suffix.lower() in {".jpg", ".jpeg", ".png"}
         )
-        output_path = side_by_side_dir / f"{image_path.stem}_gt_pred.png"
-        output_image.save(output_path)
-
-    metrics_path = predictions_dir / "metrics.json"
-    if args.model == "yolov11":
-        dataset = VisDroneDataset(
-            str(images_dir),
-            str(annotations_dir),
-            transforms=None,
-            class_map=class_map,
-            valid_categories=config["data"].get("valid_categories"),
-        )
-        metric_values, avg_pred_time = evaluate_yolo_dataset(
-            model, dataset, score_threshold, eval_use_score_threshold
-        )
-    else:
-        dataset = VisDroneDataset(
-            str(images_dir),
-            str(annotations_dir),
-            transforms=build_transforms(
+        for image_path in image_files:
+            ann_path = annotations_dir / f"{image_path.stem}.txt"
+            output_image = render_gt_vs_pred(
+                image_path,
+                ann_path,
+                model,
+                transforms,
                 config,
-                train=False,
-                use_model_internal_preprocessing=use_model_internal_preprocessing,
-            ),
-            class_map=class_map,
-            valid_categories=config["data"].get("valid_categories"),
-        )
-        label_offset = -1 if args.model == "retinanet" else 0
-        val_loss, metric_values, avg_pred_time = evaluate_detector_dataset(
-            model,
-            dataset,
-            device,
-            label_offset,
-            batch_size=config["data"]["batch_size"],
-            num_workers=config["data"]["num_workers"],
-            score_threshold=score_threshold,
-            track_inference_time=True,
-        )
-    metrics_out = {
-        "map_50": float(metric_values.get("map_50", 0.0)),
-        "map_50_95": float(metric_values.get("map", 0.0)),
-        "precision": float(metric_values.get("precision", 0.0)),
-        "recall": float(metric_values.get("recall", 0.0)),
-        "avg_inference_time_sec": avg_pred_time,
-    }
-    with open(metrics_path, "w") as f:
-        json.dump(metrics_out, f, indent=2)
+                device,
+                score_threshold,
+                zero_based,
+                apply_unnorm=not use_model_internal_preprocessing,
+                class_map=class_map,
+                model_name=args.model,
+            )
+            output_path = side_by_side_dir / f"{image_path.stem}_gt_pred.png"
+            output_image.save(output_path)
+
+    if not args.skip_metrics:
+        metrics_path = predictions_dir / "metrics.json"
+        if args.model == "yolov11":
+            dataset = VisDroneDataset(
+                str(images_dir),
+                str(annotations_dir),
+                transforms=None,
+                class_map=class_map,
+                valid_categories=config["data"].get("valid_categories"),
+            )
+            metric_values, avg_pred_time = evaluate_yolo_dataset(
+                model, dataset, score_threshold, eval_use_score_threshold
+            )
+        else:
+            dataset = VisDroneDataset(
+                str(images_dir),
+                str(annotations_dir),
+                transforms=build_transforms(
+                    config,
+                    train=False,
+                    use_model_internal_preprocessing=use_model_internal_preprocessing,
+                ),
+                class_map=class_map,
+                valid_categories=config["data"].get("valid_categories"),
+            )
+            label_offset = -1 if args.model == "retinanet" else 0
+            val_loss, metric_values, avg_pred_time = evaluate_detector_dataset(
+                model,
+                dataset,
+                device,
+                label_offset,
+                batch_size=config["data"]["batch_size"],
+                num_workers=config["data"]["num_workers"],
+                score_threshold=score_threshold,
+                track_inference_time=True,
+            )
+        metrics_out = {
+            "map_50": float(metric_values.get("map_50", 0.0)),
+            "map_50_95": float(metric_values.get("map", 0.0)),
+            "precision": float(metric_values.get("precision", 0.0)),
+            "recall": float(metric_values.get("recall", 0.0)),
+            "avg_inference_time_sec": avg_pred_time,
+        }
+        with open(metrics_path, "w") as f:
+            json.dump(metrics_out, f, indent=2)
     print(f"Output salvato in {predictions_dir}")
 
 

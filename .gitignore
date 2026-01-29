@@ -7,6 +7,7 @@ data/**/*.tar
 data/**/*.tar.gz
 Test/
 history*.txt
+experimentation.txt
 
 # Model artifacts and logs
 models/*.pth

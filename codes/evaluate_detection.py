@@ -5,7 +5,8 @@ from torch import nn
 #Nei modelli di detection di Torchvision la forward funziona:
 # - model.eval() + model(images) → ritorna solo prediction
 # - model.train() + model(images, targets) → ritorna un dizionare di loss
-#Se tenessi il modello solo in eval(), non potrei calcolare la loss di validazione, perché il modello non accetterebbe e non produrrebbe le losses
+#Se tenessi il modello solo in eval(), non potrei calcolare la loss di validazione,
+#perché il modello non accetterebbe e non produrrebbe le losses
 
 
 #Scansiona tutti i moduli del modello ed individua quelli di tipo BatchNorm e Dropout

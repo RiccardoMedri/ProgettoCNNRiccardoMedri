@@ -10,6 +10,7 @@ dependencies:
   - pytorch=2.6.0
   - torchvision=0.21.0
   - pytorch-cuda=12.4
+  - pycocotools
   - pip
   - pip:
     - tensorboard==2.20.0
