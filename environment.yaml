@@ -1,0 +1,19 @@
+﻿name: visdrone_detection
+channels:
+  - pytorch
+  - nvidia
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.12
+  - numpy>=1.26,<2
+  - pytorch=2.6.0
+  - torchvision=0.21.0
+  - pytorch-cuda=12.4
+  - pip
+  - pip:
+    - tensorboard==2.20.0
+    - tqdm==4.67.1
+    - pillow==11.1.0
+    - torchmetrics==1.8.2
+    - ultralytics==8.3.94

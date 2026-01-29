@@ -12,7 +12,6 @@ from codes.metrics import DetectionMetrics
 from data.detection_transforms import build_transforms
 from data.visdrone_dataset import VisDroneDataset, collate_fn
 from models.detectors import build_detector, build_yolo
-from utils.checkpoints import load_checkpoint
 from utils.class_names import class_names
 from utils.config import load_config
 from utils.visdrone_io import load_visdrone_annotations
@@ -45,9 +44,15 @@ def run_on_image(
     image = Image.open(image_path).convert("RGB")
     class_map = config["data"]["class_map"]
     boxes, labels = load_visdrone_annotations(ann_path, class_map)
+    if boxes:
+        boxes_tensor = torch.tensor(boxes, dtype=torch.float32)
+        labels_tensor = torch.tensor(labels, dtype=torch.int64)
+    else:
+        boxes_tensor = torch.zeros((0, 4), dtype=torch.float32)
+        labels_tensor = torch.zeros((0,), dtype=torch.int64)
     target = {
-        "boxes": torch.tensor(boxes, dtype=torch.float32),
-        "labels": torch.tensor(labels, dtype=torch.int64),
+        "boxes": boxes_tensor,
+        "labels": labels_tensor,
     }
     width, height = image.size
     target["boxes"] = tv_tensors.BoundingBoxes(
@@ -257,7 +262,6 @@ def main():
     else:
         model_cfg = dict(config["models"][args.model])
         pred_weights = prediction_weights.get(args.model)
-        checkpoint_path = None
         if pred_weights:
             if isinstance(pred_weights, str):
                 pred_weights = pred_weights.strip()
@@ -266,19 +270,21 @@ def main():
             elif pred_weights.lower() in ("coco", "default"):
                 model_cfg["weights"] = pred_weights
             elif os.path.exists(pred_weights):
-                model_cfg["weights"] = "none"
-                checkpoint_path = pred_weights
+                model_cfg["weights"] = pred_weights
             else:
                 raise SystemExit(f"Pesi predizione non validi: {pred_weights}")
         model = build_detector(model_cfg, num_classes=config["data"]["num_classes"])
-        if checkpoint_path:
-            load_checkpoint(model, None, checkpoint_path, device=device)
         model.to(device)
         model.eval()
 
     if args.image:
         image_path = Path(args.image)
         ann_path = image_path.with_suffix(".txt")
+        if not ann_path.exists():
+            if image_path.parent.name.lower() == "images":
+                ann_path = image_path.parent.parent / "annotations" / f"{image_path.stem}.txt"
+            else:
+                ann_path = image_path.parent / "annotations" / f"{image_path.stem}.txt"
         output_image = render_gt_vs_pred(
             image_path,
             ann_path,
@@ -292,7 +298,7 @@ def main():
             class_map=class_map,
             model_name=args.model,
         )
-        output_path = image_path.with_suffix("").as_posix() + "_gt_pred.png"
+        output_path = image_path.with_suffix("").as_posix() + f"_gt_pred_{args.model}.png"
         output_image.save(output_path)
         print(f"Output salvato in {output_path}")
         return
