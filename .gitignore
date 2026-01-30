@@ -5,7 +5,7 @@ data/VisDrone2019-DET-YOLO/
 data/**/*.zip
 data/**/*.tar
 data/**/*.tar.gz
-Test/
+Test/test1/
 history*.txt
 experimentation.txt
 

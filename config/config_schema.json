@@ -17,12 +17,25 @@
                 "num_workers": {"type": "integer"},
                 "image_size": {"type": "integer"},
                 "num_classes": {"type": "integer"},
-                "class_map": {"type": "object"},
+                "class_map": {
+                    "type": "object",
+                    "additionalProperties": {"type": "integer"}
+                },
+                "valid_categories": {
+                    "type": "array",
+                    "items": {"type": "integer"}
+                },
                 "normalize": {
                     "type": "object",
                     "properties": {
-                        "mean": {"type": "array"},
-                        "std": {"type": "array"}
+                        "mean": {
+                            "type": "array",
+                            "items": {"type": "number"}
+                        },
+                        "std": {
+                            "type": "array",
+                            "items": {"type": "number"}
+                        }
                     },
                     "required": ["mean", "std"]
                 },
@@ -67,7 +80,18 @@
                     "required": ["dataset_root", "auto_convert", "yaml_path"]
                 }
             },
-            "required": ["batch_size", "num_workers", "image_size", "num_classes", "train", "val", "normalize"]
+            "required": [
+                "batch_size",
+                "num_workers",
+                "image_size",
+                "num_classes",
+                "class_map",
+                "normalize",
+                "augmentation",
+                "train",
+                "val",
+                "yolo"
+            ]
         },
         "training": {
             "type": "object",
@@ -98,7 +122,22 @@
                     "required": ["lr", "min_lr", "weight_decay"]
                 }
             },
-            "required": ["epochs", "patience", "delta", "early_stop_mode", "early_stop_metric", "use_amp", "log_interval", "save_predictions_every", "prediction_samples", "prediction_score_threshold", "runs_dir", "optimizer"]
+            "required": [
+                "epochs",
+                "patience",
+                "delta",
+                "early_stop_mode",
+                "early_stop_metric",
+                "use_amp",
+                "log_interval",
+                "save_predictions_every",
+                "prediction_samples",
+                "prediction_score_threshold",
+                "runs_dir",
+                "warmup_epochs",
+                "warmup_start_factor",
+                "optimizer"
+            ]
         },
         "evaluation": {
             "type": "object",
@@ -120,7 +159,8 @@
                         "yolov11": {"type": "string"},
                         "retinanet": {"type": "string"},
                         "faster_rcnn": {"type": "string"}
-                    }
+                    },
+                    "required": ["yolov11", "retinanet", "faster_rcnn"]
                 }
             },
             "required": ["score_threshold", "eval_use_score_threshold", "model_weights"]
@@ -128,7 +168,14 @@
         "models": {
             "type": "object",
             "properties": {
-                "yolov11": {"type": "object"},
+                "yolov11": {
+                    "type": "object",
+                    "properties": {
+                        "type": {"type": "string"},
+                        "weights": {"type": "string"}
+                    },
+                    "required": ["type", "weights"]
+                },
                 "retinanet": {
                     "type": "object",
                     "properties": {
@@ -142,7 +189,8 @@
                                 "max_size": {"type": "integer"}
                             }
                         }
-                    }
+                    },
+                    "required": ["type", "trainable_backbone_layers"]
                 },
                 "faster_rcnn": {
                     "type": "object",
@@ -157,7 +205,8 @@
                                 "max_size": {"type": "integer"}
                             }
                         }
-                    }
+                    },
+                    "required": ["type", "trainable_backbone_layers"]
                 }
             },
             "required": ["yolov11", "retinanet", "faster_rcnn"]

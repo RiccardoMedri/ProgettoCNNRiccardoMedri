@@ -1,4 +1,4 @@
-# Progetto d'Esame "Laboratorio IA" - Object Detection (VisDrone2019-DET)
+# Progetto d'Esame: Object Detection su VisDrone
 
 ## Panoramica
 Questo progetto confronta tre modelli di object detection sul dataset VisDrone2019-DET:
@@ -24,6 +24,13 @@ conda env create -f environment.yaml
 ```
 
 ## Dataset VisDrone2019-DET
+
+Scaricare i dataset (train, val e test) e i migliori checkpoint al seguente link: [DRIVE](https://drive.google.com/drive/folders/1bLp8I1Y4LcdfkMxSXdmiEx3D0_ETO3cf?usp=drive_link) 
+Posizionare:
+- Le cartelle VisDron2019 all’interno della cartella “data”.
+- "test1" dentro la cartella "Test".
+- I checkpoint nella root.
+
 Struttura attesa:
 ```
 data/
@@ -99,18 +106,19 @@ python image_test.py --model retinanet --image path/to/image.jpg --score-thresho
 Di seguito ogni valore di configurazione con significato e opzioni ammesse.
 
 ### experiment
+- `experiment.name` (string): nome esperimento usato per la run. Opzioni: stringa qualsiasi.
 - `experiment.seed` (int): seed per la riproducibilita'. Opzioni: qualsiasi intero.
-- `experiment.device` (string): device preferito. Opzioni: `cuda` o `cpu` (se `cuda` non e' disponibile usa `cpu`).
+- `experiment.device` (string): device preferito. Opzioni: `cuda` o `cpu`.
 
 ### data
 - `data.batch_size` (int): batch size per training/val. Opzioni: intero > 0.
 - `data.num_workers` (int): worker per DataLoader. Opzioni: intero >= 0.
-- `data.image_size` (int): dimensione base di resize. Opzioni: intero > 0.
+- `data.image_size` (int): `imgsz` per YOLO. Opzioni: intero > 0.
 - `data.num_classes` (int): numero classi oggetto (VisDrone = 10). Opzioni: intero > 0.
-- `data.class_map` (dict): mappa classi VisDrone -> classi target. Opzioni: mappa `{"1":1, ...}`; usata nel parser annotazioni.
+- `data.class_map` (dict): mappa classi VisDrone -> classi target. Opzioni: mappa `{"1":1, ...}`.
 - `data.valid_categories` (list[int]): categorie accettate. Opzioni: lista di ID classe.
-- `data.normalize.mean` (list[float]): media canali RGB per normalizzazione. Opzioni: 3 float.
-- `data.normalize.std` (list[float]): deviazione standard canali RGB. Opzioni: 3 float.
+- `data.normalize.mean` (list[float]): media canali RGB (normalizzazione/visualizzazioni). Opzioni: 3 float.
+- `data.normalize.std` (list[float]): deviazione standard RGB (normalizzazione/visualizzazioni). Opzioni: 3 float.
 - `data.augmentation.horizontal_flip` (bool): abilita flip orizzontale. Opzioni: `true|false`.
 - `data.augmentation.flip_prob` (float): probabilita' di flip. Opzioni: 0.0 - 1.0.
 - `data.augmentation.color_jitter` (bool): abilita jitter colore. Opzioni: `true|false`.
@@ -131,7 +139,7 @@ Di seguito ogni valore di configurazione con significato e opzioni ammesse.
 - `training.patience` (int): patience per early stopping. Opzioni: intero >= 0.
 - `training.delta` (float): miglioramento minimo per early stopping. Opzioni: float >= 0.
 - `training.early_stop_mode` (string): direzione metrica. Opzioni: `max` o `min`.
-- `training.early_stop_metric` (string): metrica monitorata. Opzioni tipiche: `map_50_95`, `map_50`, `loss`.
+- `training.early_stop_metric` (string): metrica monitorata. Opzioni: `map_50_95` o `map_50` (altrimenti usa la val loss).
 - `training.use_amp` (bool): abilita mixed precision. Opzioni: `true|false`.
 - `training.gradient_clip_norm` (float): norma max per gradient clipping. Opzioni: float >= 0.
 - `training.gradient_accumulation_steps` (int): step di accumulo gradiente. Opzioni: intero >= 1.
