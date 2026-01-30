@@ -48,10 +48,7 @@
                         "brightness": {"type": "number"},
                         "contrast": {"type": "number"},
                         "saturation": {"type": "number"},
-                        "hue": {"type": "number"},
-                        "random_scale": {"type": "boolean"},
-                        "scale_min": {"type": "number"},
-                        "scale_max": {"type": "number"}
+                        "hue": {"type": "number"}
                     }
                 },
                 "train": {

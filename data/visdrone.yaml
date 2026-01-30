@@ -1,0 +1,5 @@
+path: C:\Users\Riccardo\Documents\Progetto Machine Learning\ProgettoConfronto\data
+train: VisDrone2019-DET-train\images
+val: VisDrone2019-DET-val\images
+nc: 10
+names: ['pedestrian', 'people', 'bicycle', 'car', 'van', 'truck', 'tricycle', 'awning-tricycle', 'bus', 'motor']

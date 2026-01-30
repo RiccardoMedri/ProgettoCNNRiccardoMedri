@@ -26,9 +26,10 @@ conda env create -f environment.yaml
 ## Dataset VisDrone2019-DET
 
 Scaricare i dataset (train, val e test) e i migliori checkpoint al seguente link: [DRIVE](https://drive.google.com/drive/folders/1bLp8I1Y4LcdfkMxSXdmiEx3D0_ETO3cf?usp=drive_link) 
+
 Posizionare:
-- Le cartelle VisDron2019 all’interno della cartella “data”.
-- "test1" dentro la cartella "Test".
+- Le cartelle VisDrone2019 all’interno della cartella “data”.
+- La cartella "test1" dentro la cartella "Test".
 - I checkpoint nella root.
 
 Struttura attesa:

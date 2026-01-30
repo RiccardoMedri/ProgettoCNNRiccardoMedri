@@ -56,7 +56,7 @@
         "warmup_epochs": 3,
         "warmup_start_factor": 0.1,
         "optimizer": {
-            "lr": 0.00005,
+            "lr": 0.0002,
             "min_lr": 0.000001,
             "weight_decay": 0.0001
         }
@@ -78,11 +78,11 @@
     "models": {
         "yolov11": {
             "type": "yolov11",
-            "weights": "C:/Users/Riccardo/Documents/Progetto Machine Learning/ProgettoConfronto/runs/yolov11/2026-01-24_15-41-38_yolov11/weights/best.pt"
+            "weights": "yolo11l.pt"
         },
         "retinanet": {
             "type": "retinanet",
-            "weights": "C:/Users/Riccardo/Documents/Progetto Machine Learning/ProgettoConfronto/runs/retinanet/2026-01-25_22-14-30_retinanet/best_model.pth",
+            "weights": "coco",
             "trainable_backbone_layers": 3,
             "transform": {
                 "min_size": [832, 896, 960],
@@ -91,7 +91,7 @@
         },
         "faster_rcnn": {
             "type": "faster_rcnn",
-            "weights": "runs/faster_rcnn/2026-01-26_15-17-39_faster_rcnn/best_model.pth",
+            "weights": "coco",
             "trainable_backbone_layers": 5,
             "transform": {
                 "min_size": 960,
